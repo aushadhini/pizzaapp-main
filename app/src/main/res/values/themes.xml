@@ -1,0 +1,19 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Base application theme -->
+    <style name="Base.Theme.PizzaApp" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary brand color (optional) -->
+        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+
+        <!-- System SplashScreen (Android 12+) -->
+        <item name="windowSplashScreenBackground">@color/white</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.PizzaApp</item>
+    </style>
+
+    <!-- App theme after splash -->
+    <style name="Theme.PizzaApp" parent="Base.Theme.PizzaApp" />
+
+
+
+</resources>

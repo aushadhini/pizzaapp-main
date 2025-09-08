@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base chip -->
+    <style name="Chip_Base">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">36dp</item>
+        <item name="android:layout_marginRight">8dp</item>
+        <item name="android:paddingLeft">16dp</item>
+        <item name="android:paddingRight">16dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/chipText</item>
+        <item name="android:background">@drawable/bg_chip</item>
+    </style>
+
+    <!-- Unselected chip -->
+    <style name="Chip_Normal" parent="Chip_Base" />
+
+    <!-- Selected chip -->
+    <style name="Chip_Selected" parent="Chip_Base">
+        <item name="android:background">@drawable/bg_chip_selected</item>
+        <item name="android:textColor">@android:color/white</item>
+    </style>
+</resources>

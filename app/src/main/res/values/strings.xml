@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">Pizza App</string>
+
+    <!-- Content descriptions / a11y -->
+    <string name="cd_food_image">Food image</string>
+    <string name="cd_favorite_toggle">Toggle favorite</string>
+    <string name="cd_add_to_cart">Add to cart</string>
+
+    <!-- Dashboard / search -->
+    <string name="hint_search">Search</string>
+    <string name="popular_food">Popular Food</string>
+    <string name="nearest">Nearest</string>
+    <string name="see_all">See All</string>
+    <string name="choose">Choose</string>
+    <string name="your_favorite_food">Your Favorite Food</string>
+    <string name="cd_filter">Open filters</string>
+    <string name="cd_nav_home">Home</string>
+    <string name="cd_nav_favorites">Favorites</string>
+    <string name="cd_nav_cart">Cart</string>
+
+    <!-- Detail screen -->
+    <string name="back">Back</string>
+    <string name="more_options">More options</string>
+    <string name="details">Details</string>
+    <string name="reviews">Reviews</string>
+    <string name="minus">Decrease quantity</string>
+    <string name="plus">Increase quantity</string>
+    <string name="add_to_cart">Add to Cart</string>
+    <string name="lorem_food_desc">
+        A hamburger is a sandwich with a beef patty, served between two soft buns,
+        topped with cheese, lettuce, and ketchup. It&#39;s popular worldwide.
+    </string>
+</resources>
