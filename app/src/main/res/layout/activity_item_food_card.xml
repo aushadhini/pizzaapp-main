@@ -84,17 +84,17 @@
                 android:textStyle="bold"
                 tools:text="Rs. 250.0" />
 
-            <!-- Correct: MaterialButton for Add -->
+            <!-- Correct: MaterialButton -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnAdd"
                 android:layout_width="48dp"
-                android:layout_height="55dp"
+                android:layout_height="48dp"
                 android:contentDescription="@string/cd_add_to_cart"
                 android:text="+"
                 android:textStyle="bold"
-                android:textSize="16sp"
+                android:textSize="18sp"
                 android:textColor="@android:color/white"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
+                style="@style/Widget.MaterialComponents.Button"
                 app:cornerRadius="8dp"
                 app:backgroundTint="@color/brandRed"
                 android:insetTop="0dp"

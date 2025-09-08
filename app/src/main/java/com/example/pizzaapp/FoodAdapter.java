@@ -1,6 +1,6 @@
 package com.example.pizzaapp;
 
-import android.content.Intent;                    // ✅ add this
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.button.MaterialButton;
 
 import java.text.NumberFormat;
 import java.util.List;
@@ -36,7 +37,7 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.VH> {
     @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.activity_item_food_card, parent, false);
+                .inflate(R.layout.activity_item_food_card, parent, false); // <-- matches your XML name
         return new VH(v);
     }
 
@@ -46,7 +47,7 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.VH> {
 
         h.txtTitle.setText(safe(f.name));
         h.txtSubtitle.setText(safe(f.subtitle));
-        h.txtPrice.setText(formatRs(f.price));
+        h.txtPrice.setText(formatRs(f.price)); // supports int/long/double
 
         if (f.imageurl != null && !f.imageurl.isEmpty()) {
             Glide.with(h.itemView.getContext())
@@ -58,15 +59,19 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.VH> {
             h.imgFood.setImageResource(R.drawable.ic_launcher_foreground);
         }
 
-        h.btnAdd.setOnClickListener(v -> { if (listener != null) listener.onAdd(f); });
+        // Add to cart
+        h.btnAdd.setOnClickListener(v -> {
+            if (listener != null) listener.onAdd(f);
+        });
 
+        // Toggle favorite (simple selected-state UI)
         h.btnFav.setOnClickListener(v -> {
             boolean sel = !v.isSelected();
             v.setSelected(sel);
             if (listener != null) listener.onFavToggle(f, sel);
         });
 
-        // 👉 Open details on card tap
+        // Open details on card tap
         h.itemView.setOnClickListener(v -> {
             Intent i = new Intent(h.itemView.getContext(), ItemDetailActivity.class);
             i.putExtra("name",      f.name);
@@ -79,29 +84,44 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.VH> {
     }
 
     @Override
-    public int getItemCount() { return items == null ? 0 : items.size(); }
+    public int getItemCount() {
+        return (items == null) ? 0 : items.size();
+    }
 
     static class VH extends RecyclerView.ViewHolder {
         ImageView imgFood;
         ImageButton btnFav;
         TextView txtTitle, txtSubtitle, txtPrice;
-        TextView btnAdd; // <-- your XML uses a TextView for the + button
+        MaterialButton btnAdd; // <-- matches MaterialButton in XML
 
         VH(@NonNull View itemView) {
             super(itemView);
-            imgFood   = itemView.findViewById(R.id.imgFood);
-            btnFav    = itemView.findViewById(R.id.btnFav);
-            txtTitle  = itemView.findViewById(R.id.txtTitle);
+            imgFood     = itemView.findViewById(R.id.imgFood);
+            btnFav      = itemView.findViewById(R.id.btnFav);
+            txtTitle    = itemView.findViewById(R.id.txtTitle);
             txtSubtitle = itemView.findViewById(R.id.txtSubtitle);
-            txtPrice  = itemView.findViewById(R.id.txtPrice);
-            btnAdd    = itemView.findViewById(R.id.btnAdd); // TextView in XML
+            txtPrice    = itemView.findViewById(R.id.txtPrice);
+            btnAdd      = itemView.findViewById(R.id.btnAdd);
         }
     }
 
-    private static String safe(String s) { return s == null ? "" : s; }
+    private static String safe(String s) {
+        return (s == null) ? "" : s;
+    }
 
-    private static String formatRs(long v) {
-        NumberFormat nf = NumberFormat.getInstance(new Locale("en", "LK"));
+    // Accepts int/long/double. Formats for Sri Lanka locale.
+    private static String formatRs(Object value) {
+        double v;
+        if (value instanceof Number) {
+            v = ((Number) value).doubleValue();
+        } else {
+            // fallback if price was stored as String
+            try { v = Double.parseDouble(String.valueOf(value)); }
+            catch (Exception e) { v = 0d; }
+        }
+        NumberFormat nf = NumberFormat.getNumberInstance(new Locale("en", "LK"));
+        nf.setMinimumFractionDigits(0);
+        nf.setMaximumFractionDigits(2);
         return "Rs. " + nf.format(v);
     }
 }

@@ -2,6 +2,8 @@
 <resources>
     <!-- App -->
     <string name="app_name">Pizza App</string>
+    <string name="login">Login</string>
+    <string name="sign_up">Sign Up</string>
 
     <!-- Content descriptions / a11y -->
     <string name="cd_food_image">Food image</string>
@@ -29,7 +31,5 @@
     <string name="plus">Increase quantity</string>
     <string name="add_to_cart">Add to Cart</string>
     <string name="lorem_food_desc">
-        A hamburger is a sandwich with a beef patty, served between two soft buns,
-        topped with cheese, lettuce, and ketchup. It&#39;s popular worldwide.
     </string>
 </resources>
