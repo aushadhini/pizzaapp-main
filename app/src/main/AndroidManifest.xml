@@ -19,7 +19,7 @@
         <activity android:name=".DashboardActivity" />
         <activity android:name=".LoginActivity" />
         <activity android:name=".SignUpActivity" />
-
+        <activity android:name=".CartActivity" />
         <activity
             android:name=".SplashActivity"
             android:exported="true">

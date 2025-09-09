@@ -1,20 +1,11 @@
 package com.example.pizzaapp;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GoogleApiAvailability;
-
-
-import android.location.LocationManager;
-import android.provider.Settings;
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GoogleApiAvailability;
-
-
-import android.Manifest;
-import android.content.pm.PackageManager;
+import android.content.Intent;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -27,10 +18,17 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.location.LocationManager;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.CancellationTokenSource;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -76,7 +74,6 @@ public class DashboardActivity extends AppCompatActivity {
                     if (txtNearestBranch != null) {
                         txtNearestBranch.setText("Location permission denied");
                     }
-                    // Optional fallback: listenNearestMenuFor("Colombo Branch");
                 }
             });
 
@@ -93,7 +90,13 @@ public class DashboardActivity extends AppCompatActivity {
         emptyView = findViewById(R.id.emptyView);
 
         rvNearest = findViewById(R.id.rvNearest);
-        txtNearestBranch = findViewById(R.id.txtNearestBranch); // add in XML under "Nearest"
+        txtNearestBranch = findViewById(R.id.txtNearestBranch);
+
+        // 🛒 Cart button in your layout (e.g., ImageButton or MaterialButton)
+        View btnCart = findViewById(R.id.navCart); // make sure your XML has this id
+        if (btnCart != null) {
+            btnCart.setOnClickListener(v -> openCart());
+        }
 
         // ---------- Popular adapter ----------
         rvPopular.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
@@ -120,14 +123,14 @@ public class DashboardActivity extends AppCompatActivity {
         rvNearest.setAdapter(adapterNearest);
     }
 
+    private void openCart() {
+        startActivity(new Intent(this, CartActivity.class));
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
-
-        // Popular: listen to a known branch (or global "popular" source if you have one)
         listenPopularFromBranch("Colombo Branch");
-
-        // Nearest: ensure permission -> get location -> pick nearest -> listen its menu
         ensureLocationAndBindNearest();
     }
 
@@ -142,8 +145,7 @@ public class DashboardActivity extends AppCompatActivity {
     private void listenPopularFromBranch(String branchId) {
         DocumentReference branchDoc = db.collection("branches").document(branchId);
         regPopular = branchDoc.collection("menu")
-                .addSnapshotListener((@Nullable QuerySnapshot snaps,
-                                      @Nullable com.google.firebase.firestore.FirebaseFirestoreException e) -> {
+                .addSnapshotListener((snaps, e) -> {
                     itemsPopular.clear();
                     if (e != null) {
                         Log.e(TAG, "Popular menu error", e);
@@ -199,10 +201,9 @@ public class DashboardActivity extends AppCompatActivity {
             return;
         }
 
-        // If Play Services missing/broken → fallback
         if (!isPlayServicesOk()) {
             Log.w(TAG, "Google Play services unavailable. Using LocationManager fallback.");
-            getLocationWithLocationManagerFallback();   // <- defined below
+            getLocationWithLocationManagerFallback();
             return;
         }
 
@@ -241,7 +242,6 @@ public class DashboardActivity extends AppCompatActivity {
         try {
             LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
 
-            // Try a quick last-known fix first
             Location last = null;
             if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                 last = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
@@ -254,17 +254,12 @@ public class DashboardActivity extends AppCompatActivity {
                 return;
             }
 
-            // API 30+ has requestLocationUpdates with one-shot getCurrentLocation on LM too,
-            // but to keep it simple, prompt user to enable location if providers are off:
             if (!(lm.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
                     lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER))) {
                 if (txtNearestBranch != null) txtNearestBranch.setText("Enable Location in Settings");
-                // Optionally deep-link:
-                // startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
                 return;
             }
 
-            // Minimal live request (NETWORK preferred for speed)
             final android.location.LocationListener listener = new android.location.LocationListener() {
                 @Override public void onLocationChanged(Location location) {
                     fetchBranchesAndPickNearest(location);
@@ -287,8 +282,6 @@ public class DashboardActivity extends AppCompatActivity {
             if (txtNearestBranch != null) txtNearestBranch.setText("Location access denied");
         }
     }
-
-
 
     private void fetchBranchesAndPickNearest(Location userLoc) {
         db.collection("branches").get().addOnSuccessListener(snaps -> {
@@ -338,11 +331,9 @@ public class DashboardActivity extends AppCompatActivity {
 
     /** Checks if Google Play services are available on the device */
     private boolean isPlayServicesOk() {
-        int code = GoogleApiAvailability.getInstance()
-                .isGooglePlayServicesAvailable(this);
+        int code = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this);
         return code == ConnectionResult.SUCCESS;
     }
-
 
     private void listenNearestMenuFor(String branchId) {
         if (regNearest != null) { regNearest.remove(); regNearest = null; }
@@ -366,4 +357,9 @@ public class DashboardActivity extends AppCompatActivity {
                     adapterNearest.notifyDataSetChanged();
                 });
     }
+
+    // ---------- (Optional) Toolbar menu cart icon ----------
+
+
+       
 }
