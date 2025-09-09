@@ -361,5 +361,5 @@ public class DashboardActivity extends AppCompatActivity {
     // ---------- (Optional) Toolbar menu cart icon ----------
 
 
-       
+
 }
