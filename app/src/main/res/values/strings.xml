@@ -9,6 +9,11 @@
     <string name="cd_food_image">Food image</string>
     <string name="cd_favorite_toggle">Toggle favorite</string>
     <string name="cd_add_to_cart">Add to cart</string>
+    <string name="cd_product_image">Product image</string>
+    <string name="cd_minus">Decrease quantity</string>
+    <string name="cd_plus">Increase quantity</string>
+    <string name="cd_delete">Remove from cart</string>
+
 
     <!-- Dashboard / search -->
     <string name="hint_search">Search</string>
