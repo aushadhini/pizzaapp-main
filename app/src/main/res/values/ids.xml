@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <item name="img" type="id" />
-    <item name="name" type="id" />
-    <item name="price" type="id" />
-    <item name="btnAdd" type="id" />
-</resources>
-

@@ -1,121 +1,146 @@
 package com.example.pizzaapp;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
+
 
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.text.TextUtils;
+import android.util.Patterns;
+import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
+import android.text.Editable;
+import android.text.TextWatcher;
 
-import com.google.firebase.auth.FirebaseAuth;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 public class LoginActivity extends AppCompatActivity {
 
-    private FirebaseAuth auth;
-    private EditText etEmail, etPassword;
-    private Button btnLogin;
-    private TextView tvForgotPassword;
+    private TextInputLayout tilEmailLogin, tilPasswordLogin;
+    private TextInputEditText etEmailLogin, etPasswordLogin;
+    private Button btnLoginNow;
+    private TextView tvToSignup, tvForgot;
+    private CheckBox cbRemember;
+
+    private DBHelper db;
+
+    // Simple session/remember-me store
+    private SharedPreferences prefs;
+    private static final String PREFS = "pm_session";
+    private static final String KEY_LOGGED_IN = "logged_in";
+    private static final String KEY_EMAIL = "email";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        // Firebase
-        auth = FirebaseAuth.getInstance();
+        // Toolbar back
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        if (toolbar != null) toolbar.setNavigationOnClickListener(v -> onBackPressed());
 
-        // Bind views
-        etEmail = findViewById(R.id.etEmail);
-        etPassword = findViewById(R.id.etPassword);
-        btnLogin = findViewById(R.id.btnLogin);
-        tvForgotPassword = findViewById(R.id.tvForgotPassword);
+        // Views
+        tilEmailLogin = findViewById(R.id.tilEmailLogin);
+        tilPasswordLogin = findViewById(R.id.tilPasswordLogin);
+        etEmailLogin = findViewById(R.id.etEmailLogin);
+        etPasswordLogin = findViewById(R.id.etPasswordLogin);
+        btnLoginNow = findViewById(R.id.btnLoginNow);
+        tvToSignup = findViewById(R.id.tvToSignup);
+        tvForgot = findViewById(R.id.tvForgot);
+        cbRemember = findViewById(R.id.cbRemember);
 
-        // Prefill email from SignUp
-        String prefill = getIntent().getStringExtra("prefill_email");
-        if (prefill != null) etEmail.setText(prefill);
+        // DB + prefs
+        db = new DBHelper(this);
+        prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
 
-        // Login button
-        btnLogin.setOnClickListener(v -> doLogin());
-
-        // Forgot password
-        tvForgotPassword.setOnClickListener(v -> resetPassword());
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        // 🔴 Only auto-skip if NOT explicitly forced to show login
-        boolean forceLogin = getIntent().getBooleanExtra("forceLogin", false);
-        if (!forceLogin && FirebaseAuth.getInstance().getCurrentUser() != null) {
-            goHome();
-        }
-    }
-
-    private void doLogin() {
-        String email = safeText(etEmail);
-        String pass  = safeText(etPassword);
-
-        if (TextUtils.isEmpty(email)) {
-            etEmail.setError("Email required");
-            etEmail.requestFocus();
-            return;
-        }
-        if (TextUtils.isEmpty(pass)) {
-            etPassword.setError("Password required");
-            etPassword.requestFocus();
+        // Auto-skip if already logged in (optional)
+        if (prefs.getBoolean(KEY_LOGGED_IN, false)) {
+            goHomeAndFinish();
             return;
         }
 
-        btnLogin.setEnabled(false);
-
-        auth.signInWithEmailAndPassword(email, pass)
-                .addOnCompleteListener(task -> {
-                    btnLogin.setEnabled(true);
-                    if (task.isSuccessful()) {
-                        Toast.makeText(this, "Welcome!", Toast.LENGTH_SHORT).show();
-                        goHome();
-                    } else {
-                        String msg = (task.getException() != null)
-                                ? task.getException().getMessage()
-                                : "Login failed";
-                        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
-                    }
-                });
-    }
-
-    private void resetPassword() {
-        String email = safeText(etEmail);
-        if (TextUtils.isEmpty(email)) {
-            Toast.makeText(this, "Enter your email first", Toast.LENGTH_SHORT).show();
-            return;
+        // Prefill remembered email
+        String rememberedEmail = prefs.getString(KEY_EMAIL, "");
+        if (!rememberedEmail.isEmpty()) {
+            etEmailLogin.setText(rememberedEmail);
+            cbRemember.setChecked(true);
         }
 
-        auth.sendPasswordResetEmail(email)
-                .addOnSuccessListener(unused ->
-                        Toast.makeText(this, "Reset email sent", Toast.LENGTH_SHORT).show()
-                )
-                .addOnFailureListener(e ->
-                        Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
-                );
+        // Clear errors when typing
+        addClearErrorWatcher(etEmailLogin, tilEmailLogin);
+        addClearErrorWatcher(etPasswordLogin, tilPasswordLogin);
+
+        // Actions
+        btnLoginNow.setOnClickListener(v -> attemptLogin());
+        tvToSignup.setOnClickListener(v ->
+                startActivity(new Intent(LoginActivity.this, SignUpActivity.class)));
+        tvForgot.setOnClickListener(v ->
+                Toast.makeText(LoginActivity.this, "Forgot password? Contact support.", Toast.LENGTH_SHORT).show());
     }
 
+    private void attemptLogin() {
+        String email = safeText(etEmailLogin);
+        String pw = safeText(etPasswordLogin);
 
+        boolean valid = true;
 
-    private String safeText(EditText et) {
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            tilEmailLogin.setError("Enter a valid email");
+            valid = false;
+        }
+        if (pw.isEmpty()) {
+            tilPasswordLogin.setError("Enter your password");
+            valid = false;
+        }
+        if (!valid) return;
+
+        // Verify with SQLite
+        if (db.checkLogin(email, pw)) {
+            if (cbRemember.isChecked()) {
+                prefs.edit()
+                        .putBoolean(KEY_LOGGED_IN, true)
+                        .putString(KEY_EMAIL, email)
+                        .apply();
+            } else {
+                prefs.edit()
+                        .putBoolean(KEY_LOGGED_IN, true) // logged in for this session
+                        .remove(KEY_EMAIL)               // don't remember email
+                        .apply();
+            }
+            Toast.makeText(this, "Welcome back!", Toast.LENGTH_SHORT).show();
+            goHomeAndFinish();
+        } else {
+            tilPasswordLogin.setError("Invalid email or password");
+        }
+    }
+
+    private void goHomeAndFinish() {
+        // TODO: Implement MainActivity (home screen)
+        startActivity(new Intent(this, MainActivity.class));
+        finish();
+    }
+
+    // Helpers
+    private static String safeText(TextInputEditText et) {
         return et.getText() == null ? "" : et.getText().toString().trim();
     }
-    private void goHome() {
-        Intent i = new Intent(LoginActivity.this,DashboardActivity.class);
-        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(i);
-        finish(); // prevents back to Login
+
+
+
+    private void addClearErrorWatcher(TextInputEditText et, TextInputLayout til) {
+        et.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                til.setError(null);
+            }
+            @Override public void afterTextChanged(Editable s) {}
+        });
     }
-
-
 }

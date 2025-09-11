@@ -2,136 +2,90 @@ package com.example.pizzaapp;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.TextUtils;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Patterns;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FirebaseFirestore;
-
-import java.util.HashMap;
-import java.util.Map;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 public class SignUpActivity extends AppCompatActivity {
 
-    private EditText etFullName, etEmail, etPhone, etPassword, etConfirmPassword;
-    private Button btnSignUp;
-    private TextView tvGoToLogin;
-
-    private FirebaseAuth auth;
-    private FirebaseFirestore db;
+    private TextInputLayout tilName, tilEmail, tilPassword, tilConfirm;
+    private TextInputEditText etName, etEmail, etPassword, etConfirm;
+    private Button btnCreateAccount;
+    private TextView tvHaveAccount;
+    private DBHelper db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_sign_up);
+        setContentView(R.layout.activity_signup); // make sure this XML exists
 
-        // Firebase
-        auth = FirebaseAuth.getInstance();
-        db = FirebaseFirestore.getInstance();
+        db = new DBHelper(this);
 
-        // Views
-        etFullName = findViewById(R.id.etFullName);
+        tilName = findViewById(R.id.tilName);
+        tilEmail = findViewById(R.id.tilEmail);
+        tilPassword = findViewById(R.id.tilPassword);
+        tilConfirm = findViewById(R.id.tilConfirm);
+
+        etName = findViewById(R.id.etName);
         etEmail = findViewById(R.id.etEmail);
-        etPhone = findViewById(R.id.etPhone);
         etPassword = findViewById(R.id.etPassword);
-        etConfirmPassword = findViewById(R.id.etConfirmPassword);
-        btnSignUp = findViewById(R.id.btnSignUp);
-        tvGoToLogin = findViewById(R.id.tvGoToLogin);
+        etConfirm = findViewById(R.id.etConfirm);
 
-        btnSignUp.setOnClickListener(v -> attemptSignUp());
-        tvGoToLogin.setOnClickListener(v -> {
-            startActivity(new Intent(SignUpActivity.this, LoginActivity.class));
-            finish();
-        });
+        btnCreateAccount = findViewById(R.id.btnCreateAccount);
+        tvHaveAccount = findViewById(R.id.tvHaveAccount);
+
+        addClearErrorWatcher(etName, tilName);
+        addClearErrorWatcher(etEmail, tilEmail);
+        addClearErrorWatcher(etPassword, tilPassword);
+        addClearErrorWatcher(etConfirm, tilConfirm);
+
+        btnCreateAccount.setOnClickListener(v -> attemptSignup());
+        tvHaveAccount.setOnClickListener(v ->
+                startActivity(new Intent(SignUpActivity.this, LoginActivity.class)));
     }
 
-    private void attemptSignUp() {
-        String name = safeText(etFullName);
+    private void attemptSignup() {
+        String name = safeText(etName);
         String email = safeText(etEmail);
-        String phone = safeText(etPhone);
-        String pass = safeText(etPassword);
-        String confirm = safeText(etConfirmPassword);
+        String pw = safeText(etPassword);
+        String pw2 = safeText(etConfirm);
 
-        if (TextUtils.isEmpty(name)) {
-            etFullName.setError("Full name required");
-            etFullName.requestFocus();
-            return;
-        }
-        if (!isValidEmail(email)) {
-            etEmail.setError("Enter valid email");
-            etEmail.requestFocus();
-            return;
-        }
-        if (!isValidPhone(phone)) {
-            etPhone.setError("Enter valid phone (7–15 digits)");
-            etPhone.requestFocus();
-            return;
-        }
-        if (pass.length() < 6) {
-            etPassword.setError("Password must be at least 6 characters");
-            etPassword.requestFocus();
-            return;
-        }
-        if (!pass.equals(confirm)) {
-            etConfirmPassword.setError("Passwords do not match");
-            etConfirmPassword.requestFocus();
-            return;
-        }
+        boolean valid = true;
+        if (name.length() < 2) { tilName.setError("Please enter your full name"); valid = false; }
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) { tilEmail.setError("Enter a valid email"); valid = false; }
+        if (pw.length() < 6) { tilPassword.setError("Use at least 6 characters"); valid = false; }
+        if (!pw.equals(pw2)) { tilConfirm.setError("Passwords don’t match"); valid = false; }
+        if (!valid) return;
 
-        btnSignUp.setEnabled(false);
-
-        // Firebase create user
-        auth.createUserWithEmailAndPassword(email, pass)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        // Save extra fields in Firestore
-                        String uid = auth.getCurrentUser().getUid();
-                        Map<String, Object> user = new HashMap<>();
-                        user.put("fullName", name);
-                        user.put("email", email);
-                        user.put("phone", phone);
-                        user.put("createdAt", System.currentTimeMillis());
-
-                        db.collection("users").document(uid).set(user)
-                                .addOnSuccessListener(aVoid -> {
-                                    Toast.makeText(this, "Account created!", Toast.LENGTH_SHORT).show();
-                                    // Go to Login and prefill email
-                                    Intent i = new Intent(SignUpActivity.this, LoginActivity.class);
-                                    i.putExtra("prefill_email", email);
-                                    startActivity(i);
-                                    finish();
-                                })
-                                .addOnFailureListener(e -> {
-                                    Toast.makeText(this, "Profile save failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                                    btnSignUp.setEnabled(true);
-                                });
-
-                    } else {
-                        String msg = (task.getException() != null) ?
-                                task.getException().getMessage() : "Sign up failed";
-                        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
-                        btnSignUp.setEnabled(true);
-                    }
-                });
+        boolean ok = db.registerUser(name, email, pw);
+        if (ok) {
+            Toast.makeText(this, "Account created 🎉", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+        } else {
+            tilEmail.setError("Email already exists");
+        }
     }
 
-    // Helpers
-    private String safeText(EditText et) {
+    private static String safeText(TextInputEditText et) {
         return et.getText() == null ? "" : et.getText().toString().trim();
     }
 
-    private boolean isValidEmail(String email) {
-        return !TextUtils.isEmpty(email) && Patterns.EMAIL_ADDRESS.matcher(email).matches();
-    }
-
-    private boolean isValidPhone(String phone) {
-        String digits = phone.replaceAll("\\D+", "");
-        return digits.length() >= 7 && digits.length() <= 15;
+    private void addClearErrorWatcher(TextInputEditText et, TextInputLayout til) {
+        et.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                til.setError(null);
+            }
+            @Override public void afterTextChanged(Editable s) {}
+        });
     }
 }
