@@ -18,6 +18,8 @@ import android.widget.LinearLayout;
 import android.widget.Space;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.content.Intent;
+
 
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -95,7 +97,8 @@ public class MainActivity extends AppCompatActivity {
         btnBell.setOnClickListener(v -> Toast.makeText(this, "Notifications", Toast.LENGTH_SHORT).show());
         navHome.setOnClickListener(v -> Toast.makeText(this, "Home", Toast.LENGTH_SHORT).show());
         navHeart.setOnClickListener(v -> Toast.makeText(this, "Favorites", Toast.LENGTH_SHORT).show());
-        navCart.setOnClickListener(v -> Toast.makeText(this, "Cart", Toast.LENGTH_SHORT).show());
+        navCart.setOnClickListener(v ->
+                startActivity(new Intent(MainActivity.this, CartActivity.class)));
 
         // Location (optional)
         fused = LocationServices.getFusedLocationProviderClient(this);
@@ -389,4 +392,5 @@ public class MainActivity extends AppCompatActivity {
                     TypedValue.COMPLEX_UNIT_DIP, dp, parent.getResources().getDisplayMetrics());
         }
     }
+
 }
