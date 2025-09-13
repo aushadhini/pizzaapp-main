@@ -185,8 +185,8 @@
                 android:overScrollMode="never"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"
-                tools:listitem="@layout/item_food_card"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                tools:listitem="@layout/item_food_card" />
 
 
             <TextView
@@ -257,6 +257,17 @@
             app:srcCompat="@drawable/btn_2"
             app:tint="@android:color/white"
             android:layout_marginStart="22dp" />
+
+        <ImageButton
+            android:id="@+id/navProfile"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="6dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cd_nav_favorites"
+            app:srcCompat="@drawable/btn_4"
+            app:tint="@android:color/white"
+            android:layout_marginStart="22dp"/>
 
         <ImageButton
             android:id="@+id/navCart"

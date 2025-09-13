@@ -2,11 +2,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.pizzaapp">
 
-    <!-- Permissions (dedupe: FINE only once) -->
+    <!-- Network (Firebase/Glide) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Location (only if your app really uses it) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Image picking permissions:
+         - Android 13+ (API 33+): READ_MEDIA_IMAGES
+         - Android 12 and below: READ_EXTERNAL_STORAGE
+         WRITE_EXTERNAL_STORAGE is deprecated; don't request it on 29+ -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
 
     <application
         android:allowBackup="true"
@@ -27,36 +38,49 @@
             </intent-filter>
         </activity>
 
-        <!-- Login -->
+        <!-- Auth screens -->
         <activity
             android:name=".LoginActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
 
-        <!-- Sign up (match the class name exactly) -->
-        <!-- If your file is SignUpActivity.java, change to .SignUpActivity -->
+        <!-- Make sure the class name matches your file exactly:
+             if it's SignUpActivity.java, keep as below; if SignUp.java, change accordingly -->
         <activity
             android:name=".SignUpActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
 
-        <!-- Dashboard / Home -->
+        <!-- Home / Dashboard -->
         <activity
             android:name=".MainActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
 
+        <!-- Cart -->
         <activity
             android:name=".CartActivity"
             android:exported="false"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait" />
 
+        <!-- Pizza details -->
         <activity
             android:name=".PizzaDetailActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
 
+        <!-- Profile editor (add this so your EditProfileActivity works) -->
+        <activity
+            android:name=".AccountActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity android:name=".EditProfileActivity" android:exported="false" />
+
+        <!-- AndroidManifest.xml (inside <application> ... ) -->
 
 
+        <!-- Firebase hooks in automatically via google-services.json -->
+        
     </application>
 </manifest>

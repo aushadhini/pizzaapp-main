@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@android:color/white">
+
+    <!-- Top App Bar -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/white"
+        app:navigationIcon="@drawable/ic_arrow_back_24"
+        app:title="My Account"
+        app:titleTextAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+        app:titleCentered="true" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:dividerPadding="8dp">
+
+            <!-- Profile summary card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/profileCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="14dp"
+                app:cardUseCompatPadding="true"
+                app:strokeWidth="0dp"
+                android:clickable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="16dp">
+
+                    <!-- (Optional) avatar -->
+                    <ImageView
+                        android:id="@+id/imgAvatar"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_person_circle_24" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_toEndOf="@id/imgAvatar"
+                        android:layout_toStartOf="@id/chevron1"
+                        android:layout_marginStart="12dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvName"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Deelaka Herath"
+                            android:textStyle="bold"
+                            android:textSize="18sp"
+                            android:textColor="@android:color/black" />
+
+                        <TextView
+                            android:id="@+id/tvPhone"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="721487181"
+                            android:textSize="14sp"
+                            android:textColor="#7A7A7A"
+                            android:layout_marginTop="2dp" />
+
+                        <TextView
+                            android:id="@+id/tvEmail"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="deelakaherath113@gmail.com"
+                            android:textSize="14sp"
+                            android:textColor="#7A7A7A"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/chevron1"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:src="@drawable/ic_chevron_right_24" />
+                </RelativeLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Row: Saved Addresses -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/rowSavedAddresses"
+                style="@style/Account.RowCard">
+                <include layout="@layout/item_account_row"
+                    android:id="@+id/includeSavedAddresses" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Row: Change Number -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/rowChangeNumber"
+                style="@style/Account.RowCard">
+                <include layout="@layout/item_account_row"
+                    android:id="@+id/includeChangeNumber" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Row: Change Email -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/rowChangeEmail"
+                style="@style/Account.RowCard">
+                <include layout="@layout/item_account_row"
+                    android:id="@+id/includeChangeEmail" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Row: Change Password -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/rowChangePassword"
+                style="@style/Account.RowCard">
+                <include layout="@layout/item_account_row"
+                    android:id="@+id/includeChangePassword" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Row: Account Deletion -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/rowDeleteAccount"
+                style="@style/Account.RowCard">
+                <include layout="@layout/item_account_row"
+                    android:id="@+id/includeDeleteAccount" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Spacer -->
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="32dp" />
+
+            <!-- Log Out -->
+            <TextView
+                android:id="@+id/btnLogout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Log Out"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="#1E7B34"
+                android:layout_gravity="center"
+                android:padding="8dp"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

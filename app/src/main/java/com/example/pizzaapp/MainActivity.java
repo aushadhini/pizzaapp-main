@@ -1,8 +1,5 @@
 package com.example.pizzaapp;
 
-import android.view.View;
-
-
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
@@ -11,6 +8,7 @@ import android.location.Location;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -26,6 +24,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+// If you want to gate profile by auth, uncomment next two lines
+// import com.google.firebase.auth.FirebaseAuth;
+// import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView rvPopular, rvNearest;
     private TextView txtNearestBranch, txtSeeAllPopular, emptyView;
     private EditText edtSearch;
-    private ImageButton btnFilter, navHome, navHeart, navCart, btnBell;
+    private ImageButton btnFilter, navHome, navHeart, navCart, btnBell, navProfile;
 
     // Data
     private FoodAdapter popularAdapter, nearestAdapter;
@@ -86,6 +87,7 @@ public class MainActivity extends AppCompatActivity {
         navHome.setOnClickListener(v -> Toast.makeText(this, "Home", Toast.LENGTH_SHORT).show());
         navHeart.setOnClickListener(v -> Toast.makeText(this, "Favorites", Toast.LENGTH_SHORT).show());
         navCart.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, CartActivity.class)));
+        navProfile.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, AccountActivity.class)));
 
         // Location (optional)
         fused = LocationServices.getFusedLocationProviderClient(this);
@@ -107,6 +109,7 @@ public class MainActivity extends AppCompatActivity {
         navHome = findViewById(R.id.navHome);
         navHeart = findViewById(R.id.navHeart);
         navCart = findViewById(R.id.navCart);
+        navProfile = findViewById(R.id.navProfile); // <-- add this ID in your XML if missing
     }
 
     private void setupRecyclerViews() {
@@ -246,6 +249,15 @@ public class MainActivity extends AppCompatActivity {
         });
         for (int i = 0; i < Math.min(4, copy.size()); i++) nearestData.add(copy.get(i));
         nearestAdapter.notifyDataSetChanged();
+    }
+
+    // ---------- Navigation ----------
+    private void openProfile() {
+        // If you want to require login first, uncomment:
+        // FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        // if (user == null) { startActivity(new Intent(this, LoginActivity.class)); return; }
+
+        startActivity(new Intent(MainActivity.this, AccountActivity.class));
     }
 
     // ---------- Models ----------
