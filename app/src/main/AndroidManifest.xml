@@ -78,9 +78,14 @@
         <activity android:name=".EditProfileActivity" android:exported="false" />
 
         <!-- AndroidManifest.xml (inside <application> ... ) -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_key" />
 
+        <activity android:name=".PickupActivity"/>
+        <activity android:name=".DeliveryActivity"/>
 
         <!-- Firebase hooks in automatically via google-services.json -->
-        
+
     </application>
 </manifest>

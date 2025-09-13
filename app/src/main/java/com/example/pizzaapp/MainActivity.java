@@ -6,10 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -24,7 +21,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-// If you want to gate profile by auth, uncomment next two lines
+// If you use Firebase for greeting, uncomment:
 // import com.google.firebase.auth.FirebaseAuth;
 // import com.google.firebase.auth.FirebaseUser;
 
@@ -35,81 +32,121 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Views
+    // Views from XML
+    private TextView tvGreeting;
+    private TextView txtNearestBranch;
+    private TextView tvDeliverySubtitle;
+    private TextView btnChangeAddress; // this is a TextView in your XML
+    private View cardDelivery, cardPickup;
+
+    private TextView txtSeeAllPopular, emptyView;
     private RecyclerView rvPopular, rvNearest;
-    private TextView txtNearestBranch, txtSeeAllPopular, emptyView;
-    private EditText edtSearch;
-    private ImageButton btnFilter, navHome, navHeart, navCart, btnBell, navProfile;
+    private ImageButton navHome, navHeart, navCart, navProfile;
 
     // Data
-    private FoodAdapter popularAdapter, nearestAdapter;
     private final List<FoodItem> masterData = new ArrayList<>();
     private final List<FoodItem> popularData = new ArrayList<>();
     private final List<FoodItem> nearestData = new ArrayList<>();
+    private FoodAdapter popularAdapter, nearestAdapter;
 
     // Location
     private FusedLocationProviderClient fused;
     private final List<Branch> branches = new ArrayList<>();
+    private LocationPrefs locationPrefs;
+
     private final ActivityResultLauncher<String> locationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
-                if (granted) fetchNearestBranch();
-                else txtNearestBranch.setText("Allow location to detect nearest branch");
+                if (granted) {
+                    fetchNearestFromDevice();
+                } else {
+                    txtNearestBranch.setText("Allow location to detect nearest branch");
+                    fillNearestWithTopRated();
+                }
             });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Use your layout file name here (this matches what you showed)
         setContentView(R.layout.activity_dashboard);
 
         bindViews();
+        locationPrefs = new LocationPrefs(this);
+
+        setupGreeting();
         setupRecyclerViews();
         seedDemoData();
 
-        // default list
+        // Default = show all in Popular
         popularData.clear();
         popularData.addAll(masterData);
         popularAdapter.notifyDataSetChanged();
         toggleEmpty();
 
-        // Search
-        edtSearch.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                filterPopular(s.toString());
-            }
-            @Override public void afterTextChanged(Editable s) {}
-        });
-
         // Clicks
-        btnFilter.setOnClickListener(v -> Toast.makeText(this, "Filter clicked", Toast.LENGTH_SHORT).show());
-        txtSeeAllPopular.setOnClickListener(v -> Toast.makeText(this, "See all popular", Toast.LENGTH_SHORT).show());
-        btnBell.setOnClickListener(v -> Toast.makeText(this, "Notifications", Toast.LENGTH_SHORT).show());
-        navHome.setOnClickListener(v -> Toast.makeText(this, "Home", Toast.LENGTH_SHORT).show());
+        txtSeeAllPopular.setOnClickListener(v ->
+                Toast.makeText(this, "See all popular", Toast.LENGTH_SHORT).show());
+
+        View.OnClickListener openDelivery = v ->
+                startActivity(new Intent(MainActivity.this, DeliveryActivity.class));
+        cardDelivery.setOnClickListener(openDelivery);
+        btnChangeAddress.setOnClickListener(openDelivery);
+
+        cardPickup.setOnClickListener(v ->
+                startActivity(new Intent(MainActivity.this, PickupActivity.class)));
+
+        navHome.setOnClickListener(v -> { /* already here */ });
         navHeart.setOnClickListener(v -> Toast.makeText(this, "Favorites", Toast.LENGTH_SHORT).show());
         navCart.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, CartActivity.class)));
         navProfile.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, AccountActivity.class)));
 
-        // Location (optional)
+        // Location setup
         fused = LocationServices.getFusedLocationProviderClient(this);
         seedBranches();
-        ensureLocationThenFetch();
+
+        // First time UI state for address
+        updateAddressUI();
+
+        // If no saved address, try device location (permission)
+        if (!locationPrefs.has()) {
+            ensureLocationThenFetch();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh card after returning from DeliveryActivity
+        updateAddressUI();
     }
 
     private void bindViews() {
-        txtNearestBranch = findViewById(R.id.txtNearestBranch);
-        txtSeeAllPopular = findViewById(R.id.txtSeeAllPopular);
-        emptyView = findViewById(R.id.emptyView);
-        edtSearch = findViewById(R.id.edtSearch);
-        btnFilter = findViewById(R.id.btnFilter);
-        btnBell = findViewById(R.id.btnBell);
+        tvGreeting         = findViewById(R.id.tvGreeting);
+        txtNearestBranch   = findViewById(R.id.txtNearestBranch);
+        tvDeliverySubtitle = findViewById(R.id.tvDeliverySubtitle);
+        btnChangeAddress   = findViewById(R.id.btnChangeAddress);
+        cardDelivery       = findViewById(R.id.cardDelivery);
+        cardPickup         = findViewById(R.id.cardPickup);
 
-        rvPopular = findViewById(R.id.rvPopular);
-        rvNearest = findViewById(R.id.rvNearest);
+        txtSeeAllPopular   = findViewById(R.id.txtSeeAllPopular);
+        emptyView          = findViewById(R.id.emptyView);
+        rvPopular          = findViewById(R.id.rvPopular);
+        rvNearest          = findViewById(R.id.rvNearest);
 
-        navHome = findViewById(R.id.navHome);
-        navHeart = findViewById(R.id.navHeart);
-        navCart = findViewById(R.id.navCart);
-        navProfile = findViewById(R.id.navProfile); // <-- add this ID in your XML if missing
+        navHome    = findViewById(R.id.navHome);
+        navHeart   = findViewById(R.id.navHeart);
+        navCart    = findViewById(R.id.navCart);
+        navProfile = findViewById(R.id.navProfile);
+    }
+
+    private void setupGreeting() {
+        // If you have Firebase user:
+        // FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        // String name = (user != null && user.getDisplayName() != null)
+        //         ? user.getDisplayName()
+        //         : (user != null ? user.getEmail() : "Guest");
+        String name = "Deelaka"; // replace with real name source if you have one
+        tvGreeting.setText("Hello " + name + "! \uD83C\uDF55");
     }
 
     private void setupRecyclerViews() {
@@ -122,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
                 intent.putExtra(PizzaDetailActivity.EXTRA_TITLE, item.title);
                 intent.putExtra(PizzaDetailActivity.EXTRA_SUBTITLE, item.subtitle);
                 intent.putExtra(PizzaDetailActivity.EXTRA_RATING, item.rating);
-                intent.putExtra(PizzaDetailActivity.EXTRA_PRICE, 1590.0);   // TODO real price
+                intent.putExtra(PizzaDetailActivity.EXTRA_PRICE, 1590.0);
                 intent.putExtra(PizzaDetailActivity.EXTRA_IMAGE_RES, item.imageRes);
                 startActivity(intent);
             }
@@ -140,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
                 intent.putExtra(PizzaDetailActivity.EXTRA_TITLE, item.title);
                 intent.putExtra(PizzaDetailActivity.EXTRA_SUBTITLE, item.subtitle);
                 intent.putExtra(PizzaDetailActivity.EXTRA_RATING, item.rating);
-                intent.putExtra(PizzaDetailActivity.EXTRA_PRICE, 1590.0);   // TODO real price
+                intent.putExtra(PizzaDetailActivity.EXTRA_PRICE, 1590.0);
                 intent.putExtra(PizzaDetailActivity.EXTRA_IMAGE_RES, item.imageRes);
                 startActivity(intent);
             }
@@ -152,7 +189,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void seedDemoData() {
-        // title, subtitle, rating, imageRes, reviews
         masterData.add(new FoodItem("Margherita", "Classic Pizza", 4.8f, R.drawable.pizza_10, 120));
         masterData.add(new FoodItem("Pepperoni", "Double Cheese", 4.7f, R.drawable.chickenpizza_1, 96));
         masterData.add(new FoodItem("Veggie", "Fresh Garden", 4.6f, R.drawable.pizza_9, 73));
@@ -161,43 +197,58 @@ public class MainActivity extends AppCompatActivity {
         masterData.add(new FoodItem("Meat Lovers", "Loaded Feast", 4.9f, R.drawable.pizza_10, 134));
     }
 
-    private void filterPopular(String query) {
-        popularData.clear();
-        if (query == null || query.trim().isEmpty()) {
-            popularData.addAll(masterData);
-        } else {
-            String q = query.toLowerCase();
-            for (FoodItem it : masterData) {
-                if (it.title.toLowerCase().contains(q) || it.subtitle.toLowerCase().contains(q)) {
-                    popularData.add(it);
-                }
-            }
-        }
-        popularAdapter.notifyDataSetChanged();
-        toggleEmpty();
-    }
-
     private void toggleEmpty() {
-        emptyView.setVisibility(popularData.isEmpty() ? View.VISIBLE : View.GONE);
-        rvPopular.setVisibility(popularData.isEmpty() ? View.GONE : View.VISIBLE);
+        boolean isEmpty = popularData.isEmpty();
+        emptyView.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
+        rvPopular.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
     }
 
-    // ---------- Location ----------
+    // -------- Address & Nearest Branch UI --------
+    private void updateAddressUI() {
+        if (locationPrefs.has()) {
+            tvDeliverySubtitle.setText(locationPrefs.address());
+            btnChangeAddress.setText("Change");
+            recomputeNearestFromSaved();
+        } else {
+            tvDeliverySubtitle.setText("Choose your location");
+            btnChangeAddress.setText("Choose");
+            txtNearestBranch.setText("Detecting your nearest branch…");
+        }
+    }
+
+    private void recomputeNearestFromSaved() {
+        try {
+            double lat = locationPrefs.lat();
+            double lng = locationPrefs.lng();
+            Location loc = new Location("saved");
+            loc.setLatitude(lat);
+            loc.setLongitude(lng);
+
+            Branch nearest = findNearestBranch(loc);
+            txtNearestBranch.setText("Nearest: " + nearest.name);
+            fillNearestWithTopRated(); // or load items for this branch
+        } catch (Exception e) {
+            txtNearestBranch.setText("Nearest branch unavailable");
+            fillNearestWithTopRated();
+        }
+    }
+
+    // -------- Device Location (fallback if no saved address) --------
     private void ensureLocationThenFetch() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
         } else {
-            fetchNearestBranch();
+            fetchNearestFromDevice();
         }
     }
 
     @SuppressLint("MissingPermission")
-    private void fetchNearestBranch() {
+    private void fetchNearestFromDevice() {
         try {
             fused.getLastLocation().addOnSuccessListener(this, loc -> {
                 if (loc == null) {
-                    txtNearestBranch.setText("Can't get location. Showing popular nearby.");
+                    txtNearestBranch.setText("Can't get location. Showing top nearby.");
                     fillNearestWithTopRated();
                     return;
                 }
@@ -205,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
                 txtNearestBranch.setText("Nearest: " + nearest.name);
                 fillNearestWithTopRated();
             }).addOnFailureListener(e -> {
-                txtNearestBranch.setText("Location error. Showing popular nearby.");
+                txtNearestBranch.setText("Location error. Showing top nearby.");
                 fillNearestWithTopRated();
             });
         } catch (SecurityException se) {
@@ -217,6 +268,7 @@ public class MainActivity extends AppCompatActivity {
     private void seedBranches() {
         branches.add(new Branch("Galle", 6.0535, 80.2210));
         branches.add(new Branch("Nugegoda", 6.8610, 79.8917));
+        // Add all your outlets here
     }
 
     private Branch findNearestBranch(@NonNull Location user) {
@@ -245,22 +297,15 @@ public class MainActivity extends AppCompatActivity {
         nearestData.clear();
         List<FoodItem> copy = new ArrayList<>(masterData);
         Collections.sort(copy, new Comparator<FoodItem>() {
-            @Override public int compare(FoodItem a, FoodItem b) { return Float.compare(b.rating, a.rating); }
+            @Override public int compare(FoodItem a, FoodItem b) {
+                return Float.compare(b.rating, a.rating);
+            }
         });
         for (int i = 0; i < Math.min(4, copy.size()); i++) nearestData.add(copy.get(i));
-        nearestAdapter.notifyDataSetChanged();
+        nearestAdapter.notifyDataSetChanged(); // <-- correct method
     }
 
-    // ---------- Navigation ----------
-    private void openProfile() {
-        // If you want to require login first, uncomment:
-        // FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        // if (user == null) { startActivity(new Intent(this, LoginActivity.class)); return; }
-
-        startActivity(new Intent(MainActivity.this, AccountActivity.class));
-    }
-
-    // ---------- Models ----------
+    // Models
     private static class Branch {
         final String name; final double lat, lng;
         Branch(String name, double lat, double lng) { this.name = name; this.lat = lat; this.lng = lng; }

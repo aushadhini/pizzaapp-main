@@ -69,4 +69,7 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.VH> {
             like     = itemView.findViewById(R.id.btnLike);
         }
     }
+    public void notifyDataChanged() { notifyDataSetChanged(); }
+
+
 }
