@@ -3,10 +3,8 @@ package com.example.pizzaapp;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
-import android.location.Location;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
@@ -17,6 +15,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+
+import android.content.pm.PackageManager;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -29,30 +29,28 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
 public class DeliveryActivity extends AppCompatActivity implements OnMapReadyCallback {
 
-    public static final String EXTRA_LAT = "extra_lat";
-    public static final String EXTRA_LNG = "extra_lng";
+    // Optional result extras (kept for compatibility)
+    public static final String EXTRA_LAT     = "extra_lat";
+    public static final String EXTRA_LNG     = "extra_lng";
     public static final String EXTRA_ADDRESS = "extra_address";
-    public static final String EXTRA_PLACE_ID = "extra_place_id";
-
 
     private GoogleMap map;
     private FusedLocationProviderClient fused;
     private LatLng selected;
     private Marker selectedMarker;
+
     private TextView tvAddress;
     private Button btnConfirm;
 
     private final ActivityResultLauncher<String> locationPerm =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
                 if (granted) enableMyLocationAndCenter();
-                else
-                    Toast.makeText(this, "Location permission is required", Toast.LENGTH_SHORT).show();
+                else Toast.makeText(this, "Location permission is required", Toast.LENGTH_SHORT).show();
             });
 
     @Override
@@ -62,12 +60,12 @@ public class DeliveryActivity extends AppCompatActivity implements OnMapReadyCal
 
         tvAddress = findViewById(R.id.tvAddress);
         btnConfirm = findViewById(R.id.btnConfirm);
-        btnConfirm.setOnClickListener(v -> returnSelection());
+        btnConfirm.setOnClickListener(v -> confirmAndSave());
 
         fused = LocationServices.getFusedLocationProviderClient(this);
 
-        SupportMapFragment fragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
+        SupportMapFragment fragment =
+                (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         if (fragment != null) fragment.getMapAsync(this);
     }
 
@@ -78,7 +76,7 @@ public class DeliveryActivity extends AppCompatActivity implements OnMapReadyCal
 
         map.setOnMapLongClickListener(latLng -> {
             dropOrMovePin(latLng);
-            tvAddress.setText(resolveAddress(latLng));
+            fetchAddressAsync(latLng);
         });
 
         ensureLocationPermission();
@@ -99,7 +97,8 @@ public class DeliveryActivity extends AppCompatActivity implements OnMapReadyCal
         map.setMyLocationEnabled(true);
 
         fused.getLastLocation().addOnSuccessListener(this, loc -> {
-            LatLng target = new LatLng(6.9271, 79.8612); // Colombo fallback
+            // Default to Colombo if we don't have a last location
+            LatLng target = new LatLng(6.9271, 79.8612);
             float zoom = 13f;
 
             if (loc != null) {
@@ -123,31 +122,46 @@ public class DeliveryActivity extends AppCompatActivity implements OnMapReadyCal
         }
     }
 
-    private String resolveAddress(LatLng latLng) {
+    private void fetchAddressAsync(LatLng latLng) {
+        tvAddress.setText("Resolving address…");
+        new Thread(() -> {
+            String text = reverseGeocode(latLng);
+            runOnUiThread(() -> tvAddress.setText(text));
+        }).start();
+    }
+
+    private String reverseGeocode(LatLng latLng) {
         try {
             Geocoder gc = new Geocoder(this, Locale.getDefault());
             List<Address> results = gc.getFromLocation(latLng.latitude, latLng.longitude, 1);
             if (results != null && !results.isEmpty()) {
                 Address a = results.get(0);
                 String line = a.getAddressLine(0);
-                return line != null ? line : a.getLocality();
+                if (line != null && !line.trim().isEmpty()) return line;
+                if (a.getLocality() != null) return a.getLocality();
             }
-        } catch (IOException ignored) {
-        }
+        } catch (Exception ignored) { }
         return "Pinned: " + latLng.latitude + ", " + latLng.longitude;
     }
 
-    private void returnSelection() {
+    private void confirmAndSave() {
         if (selected == null) {
             Toast.makeText(this, "Long-press on the map to choose a location", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        String addr = tvAddress.getText() == null ? "" : tvAddress.getText().toString();
+
+        // 1) Persist for MainActivity card (LocationPrefs from earlier message)
+        new LocationPrefs(this).save(addr, selected.latitude, selected.longitude);
+
+        // 2) Also return via result extras (optional)
         Intent data = new Intent();
         data.putExtra(EXTRA_LAT, selected.latitude);
         data.putExtra(EXTRA_LNG, selected.longitude);
-        data.putExtra(EXTRA_ADDRESS, tvAddress.getText().toString());
+        data.putExtra(EXTRA_ADDRESS, addr);
         setResult(RESULT_OK, data);
-        finish();
+
+        finish(); // MainActivity.onResume() -> updateAddressUI()
     }
-    // Call this when the user confirms the picked place:
 }
