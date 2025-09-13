@@ -11,12 +11,15 @@ import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
+import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseUser;
 
 public class LoginActivity extends AppCompatActivity {
@@ -27,7 +30,6 @@ public class LoginActivity extends AppCompatActivity {
     private TextView tvToSignup, tvForgot;
     private CheckBox cbRemember;
 
-    // Remember-only prefs (Firebase manages the real session)
     private SharedPreferences prefs;
     private static final String PREFS = "pm_session";
     private static final String KEY_EMAIL = "email";
@@ -35,7 +37,7 @@ public class LoginActivity extends AppCompatActivity {
     private FirebaseAuth auth;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
@@ -44,12 +46,12 @@ public class LoginActivity extends AppCompatActivity {
 
         tilEmailLogin = findViewById(R.id.tilEmailLogin);
         tilPasswordLogin = findViewById(R.id.tilPasswordLogin);
-        etEmailLogin = findViewById(R.id.etEmailLogin);
-        etPasswordLogin = findViewById(R.id.etPasswordLogin);
-        btnLoginNow = findViewById(R.id.btnLoginNow);
-        tvToSignup = findViewById(R.id.tvToSignup);
-        tvForgot = findViewById(R.id.tvForgot);
-        cbRemember = findViewById(R.id.cbRemember);
+        etEmailLogin   = findViewById(R.id.etEmailLogin);
+        etPasswordLogin= findViewById(R.id.etPasswordLogin);
+        btnLoginNow    = findViewById(R.id.btnLoginNow);
+        tvToSignup     = findViewById(R.id.tvToSignup);
+        tvForgot       = findViewById(R.id.tvForgot);
+        cbRemember     = findViewById(R.id.cbRemember);
 
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         auth  = FirebaseAuth.getInstance();
@@ -61,16 +63,12 @@ public class LoginActivity extends AppCompatActivity {
             cbRemember.setChecked(true);
         }
 
-        // Clear errors while typing
         addClearErrorWatcher(etEmailLogin, tilEmailLogin);
         addClearErrorWatcher(etPasswordLogin, tilPasswordLogin);
 
         btnLoginNow.setOnClickListener(v -> attemptLogin());
-
-        // If you DON'T have a SignUpActivity yet, comment this out.
         tvToSignup.setOnClickListener(v ->
                 startActivity(new Intent(LoginActivity.this, SignUpActivity.class)));
-
         tvForgot.setOnClickListener(v -> sendResetEmail());
     }
 
@@ -79,14 +77,19 @@ public class LoginActivity extends AppCompatActivity {
         super.onStart();
         FirebaseUser current = auth.getCurrentUser();
         if (current != null) {
-            // already signed in by Firebase -> go home
-            goHomeAndFinish();
+            // If you require email verification, gate here:
+            if (!current.isEmailVerified()) {
+                Toast.makeText(this, "Please verify your email first.", Toast.LENGTH_LONG).show();
+                auth.signOut();
+            } else {
+                goHomeAndFinish();
+            }
         }
     }
 
     private void attemptLogin() {
         String email = safeText(etEmailLogin);
-        String pw = safeText(etPasswordLogin);
+        String pw    = safeText(etPasswordLogin);
 
         boolean valid = true;
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
@@ -99,25 +102,35 @@ public class LoginActivity extends AppCompatActivity {
         }
         if (!valid) return;
 
-        // Firebase email/password sign in
         btnLoginNow.setEnabled(false);
+
         auth.signInWithEmailAndPassword(email, pw)
-                .addOnCompleteListener(task -> {
+                .addOnCompleteListener(this, task -> {
                     btnLoginNow.setEnabled(true);
+
                     if (task.isSuccessful()) {
+                        FirebaseUser user = auth.getCurrentUser();
+
+                        // Optional: enforce email verification
+                        if (user != null && !user.isEmailVerified()) {
+                            auth.signOut();
+                            Toast.makeText(this, "Verify your email, then try again.", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+
                         // Remember email toggle
                         if (cbRemember.isChecked()) {
                             prefs.edit().putString(KEY_EMAIL, email).apply();
                         } else {
                             prefs.edit().remove(KEY_EMAIL).apply();
                         }
+
                         Toast.makeText(this, "Welcome back!", Toast.LENGTH_SHORT).show();
                         goHomeAndFinish();
                     } else {
+                        String msg = readableAuthError(task.getException());
                         tilPasswordLogin.setError("Invalid email or password");
-                        Toast.makeText(this,
-                                task.getException() == null ? "Login failed" : task.getException().getLocalizedMessage(),
-                                Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
                     }
                 });
     }
@@ -132,7 +145,19 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnSuccessListener(unused ->
                         Toast.makeText(this, "Reset link sent to your email", Toast.LENGTH_SHORT).show())
                 .addOnFailureListener(e ->
-                        Toast.makeText(this, e.getLocalizedMessage(), Toast.LENGTH_LONG).show());
+                        Toast.makeText(this, readableAuthError(e), Toast.LENGTH_LONG).show());
+    }
+
+    private String readableAuthError(Exception e) {
+        if (e instanceof FirebaseAuthInvalidUserException) {
+            return "No account found for that email.";
+        } else if (e instanceof FirebaseAuthInvalidCredentialsException) {
+            return "Incorrect email or password.";
+        } else if (e != null && e.getLocalizedMessage() != null) {
+            return e.getLocalizedMessage();
+        } else {
+            return "Authentication failed. Please try again.";
+        }
     }
 
     private void goHomeAndFinish() {

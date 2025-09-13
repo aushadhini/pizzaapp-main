@@ -54,7 +54,9 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
-    implementation("com.google.firebase:firebase-storage")   // <-- REQUIRED for Storage
+    implementation("com.google.firebase:firebase-storage")
+    implementation(platform("com.google.firebase:firebase-bom:33.3.0"))
+    implementation("com.google.firebase:firebase-auth")// <-- REQUIRED for Storage
 
     // ---------- Glide ----------
     implementation("com.github.bumptech.glide:glide:4.16.0")

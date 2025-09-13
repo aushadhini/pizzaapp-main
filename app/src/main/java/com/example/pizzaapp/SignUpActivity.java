@@ -10,10 +10,17 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
+import com.google.firebase.auth.FirebaseAuthUserCollisionException;
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserProfileChangeRequest;
 
 public class SignUpActivity extends AppCompatActivity {
 
@@ -22,30 +29,31 @@ public class SignUpActivity extends AppCompatActivity {
     private Button btnCreateAccount;
     private TextView tvHaveAccount;
 
-    private DBHelper db;
+    private FirebaseAuth auth;
+
+    // Flip to false if you don’t want to require email verification
+    private static final boolean REQUIRE_EMAIL_VERIFICATION = true;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_signup); // ensure this XML exists with matching IDs
+        setContentView(R.layout.activity_signup); // Make sure IDs match this file.
 
-        db = new DBHelper(this);
+        auth = FirebaseAuth.getInstance();
 
-        // Bind views (must match your activity_signup.xml ids)
-        tilName      = findViewById(R.id.tilName);
-        tilEmail     = findViewById(R.id.tilEmail);
-        tilPassword  = findViewById(R.id.tilPassword);
-        tilConfirm   = findViewById(R.id.tilConfirm);
+        tilName     = findViewById(R.id.tilName);
+        tilEmail    = findViewById(R.id.tilEmail);
+        tilPassword = findViewById(R.id.tilPassword);
+        tilConfirm  = findViewById(R.id.tilConfirm);
 
-        etName       = findViewById(R.id.etName);
-        etEmail      = findViewById(R.id.etEmail);
-        etPassword   = findViewById(R.id.etPassword);
-        etConfirm    = findViewById(R.id.etConfirm);
+        etName      = findViewById(R.id.etName);
+        etEmail     = findViewById(R.id.etEmail);
+        etPassword  = findViewById(R.id.etPassword);
+        etConfirm   = findViewById(R.id.etConfirm);
 
         btnCreateAccount = findViewById(R.id.btnCreateAccount);
         tvHaveAccount    = findViewById(R.id.tvHaveAccount);
 
-        // Clear errors while typing
         addClearErrorWatcher(etName, tilName);
         addClearErrorWatcher(etEmail, tilEmail);
         addClearErrorWatcher(etPassword, tilPassword);
@@ -57,7 +65,6 @@ public class SignUpActivity extends AppCompatActivity {
     }
 
     private void attemptSignup() {
-        // Reset visible errors
         tilName.setError(null);
         tilEmail.setError(null);
         tilPassword.setError(null);
@@ -88,23 +95,61 @@ public class SignUpActivity extends AppCompatActivity {
         }
         if (!valid) return;
 
-        // Try to create the user in SQLite
         btnCreateAccount.setEnabled(false);
-        boolean created = db.registerUser(name, email, pw);
-        btnCreateAccount.setEnabled(true);
 
-        if (created) {
-            Toast.makeText(this, "Account created 🎉", Toast.LENGTH_SHORT).show();
+        auth.createUserWithEmailAndPassword(email, pw)
+                .addOnCompleteListener(task -> {
+                    btnCreateAccount.setEnabled(true);
 
-            // Go to Login and prefill the email
-            Intent i = new Intent(this, LoginActivity.class);
-            i.putExtra("prefill_email", email);
-            startActivity(i);
-            finish();
-        } else {
-            // DBHelper should return false if email already exists
-            tilEmail.setError("Email already exists");
-        }
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = auth.getCurrentUser();
+
+                        // Set display name (so you can read it later via user.getDisplayName())
+                        if (user != null && !name.isEmpty()) {
+                            UserProfileChangeRequest profile =
+                                    new UserProfileChangeRequest.Builder()
+                                            .setDisplayName(name)
+                                            .build();
+                            user.updateProfile(profile);
+                        }
+
+                        if (REQUIRE_EMAIL_VERIFICATION && user != null) {
+                            user.sendEmailVerification()
+                                    .addOnSuccessListener(unused ->
+                                            Toast.makeText(this, "Verification email sent. Please check your inbox.", Toast.LENGTH_LONG).show())
+                                    .addOnFailureListener(e ->
+                                            Toast.makeText(this, "Could not send verification: " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show());
+                            // Keep the flow simple: sign out and send to Login
+                            auth.signOut();
+                        } else {
+                            Toast.makeText(this, "Account created 🎉", Toast.LENGTH_SHORT).show();
+                        }
+
+                        // Go to Login and prefill email
+                        Intent i = new Intent(this, LoginActivity.class);
+                        i.putExtra("prefill_email", email);
+                        startActivity(i);
+                        finish();
+
+                    } else {
+                        // Friendly errors
+                        String msg = "Sign up failed. Please try again.";
+                        Exception e = task.getException();
+                        if (e instanceof FirebaseAuthWeakPasswordException) {
+                            msg = "Weak password. Use at least 6 characters.";
+                            tilPassword.setError(msg);
+                        } else if (e instanceof FirebaseAuthInvalidCredentialsException) {
+                            msg = "Invalid email format.";
+                            tilEmail.setError(msg);
+                        } else if (e instanceof FirebaseAuthUserCollisionException) {
+                            msg = "Email already in use.";
+                            tilEmail.setError(msg);
+                        } else if (e != null && e.getLocalizedMessage() != null) {
+                            msg = e.getLocalizedMessage();
+                        }
+                        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                    }
+                });
     }
 
     private static String textOf(TextInputEditText et) {
@@ -114,9 +159,7 @@ public class SignUpActivity extends AppCompatActivity {
     private void addClearErrorWatcher(TextInputEditText et, TextInputLayout til) {
         et.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                til.setError(null);
-            }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { til.setError(null); }
             @Override public void afterTextChanged(Editable s) {}
         });
     }
