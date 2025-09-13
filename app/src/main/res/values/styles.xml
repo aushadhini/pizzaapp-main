@@ -19,5 +19,8 @@
     <style name="Chip_Selected" parent="Chip_Base">
         <item name="android:background">@drawable/bg_chip_selected</item>
         <item name="android:textColor">@android:color/white</item>
+        <!-- values/styles.xml -->
+
+
     </style>
 </resources>

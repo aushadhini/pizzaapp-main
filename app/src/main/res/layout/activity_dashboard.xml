@@ -181,13 +181,13 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvPopular"
                 android:layout_width="match_parent"
-                android:layout_height="220dp"
-                android:layout_marginTop="10dp"
+                android:layout_height="wrap_content"
                 android:overScrollMode="never"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                android:orientation="horizontal"/>
+                tools:listitem="@layout/item_food_card"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
 
             <TextView
                 android:id="@+id/emptyView"
@@ -214,13 +214,11 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvNearest"
                 android:layout_width="match_parent"
-                android:layout_height="220dp"
-                android:layout_marginTop="10dp"
-                android:layout_marginBottom="90dp"
-                android:orientation="horizontal"
+                android:layout_height="wrap_content"
                 android:overScrollMode="never"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"
+                tools:listitem="@layout/item_food_card"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
 

@@ -1,36 +1,23 @@
 package com.example.pizzaapp;
 
+import android.view.View;
+
+
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.TypedValue;
-import android.view.Gravity;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.Space;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.Intent;
-
-
-import android.app.AlertDialog;
-import android.content.Intent;
-import android.location.LocationManager;
-import android.provider.Settings;
-
-
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -39,7 +26,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.material.card.MaterialCardView;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -72,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_dashboard); // your XML
+        setContentView(R.layout.activity_dashboard);
 
         bindViews();
         setupRecyclerViews();
@@ -84,10 +70,12 @@ public class MainActivity extends AppCompatActivity {
         popularAdapter.notifyDataSetChanged();
         toggleEmpty();
 
-        // Search filter
+        // Search
         edtSearch.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { filterPopular(s.toString()); }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterPopular(s.toString());
+            }
             @Override public void afterTextChanged(Editable s) {}
         });
 
@@ -97,8 +85,7 @@ public class MainActivity extends AppCompatActivity {
         btnBell.setOnClickListener(v -> Toast.makeText(this, "Notifications", Toast.LENGTH_SHORT).show());
         navHome.setOnClickListener(v -> Toast.makeText(this, "Home", Toast.LENGTH_SHORT).show());
         navHeart.setOnClickListener(v -> Toast.makeText(this, "Favorites", Toast.LENGTH_SHORT).show());
-        navCart.setOnClickListener(v ->
-                startActivity(new Intent(MainActivity.this, CartActivity.class)));
+        navCart.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, CartActivity.class)));
 
         // Location (optional)
         fused = LocationServices.getFusedLocationProviderClient(this);
@@ -132,14 +119,15 @@ public class MainActivity extends AppCompatActivity {
                 intent.putExtra(PizzaDetailActivity.EXTRA_TITLE, item.title);
                 intent.putExtra(PizzaDetailActivity.EXTRA_SUBTITLE, item.subtitle);
                 intent.putExtra(PizzaDetailActivity.EXTRA_RATING, item.rating);
-                intent.putExtra(PizzaDetailActivity.EXTRA_PRICE, 1590.0); // TODO: pass real price from DB
+                intent.putExtra(PizzaDetailActivity.EXTRA_PRICE, 1590.0);   // TODO real price
                 intent.putExtra(PizzaDetailActivity.EXTRA_IMAGE_RES, item.imageRes);
                 startActivity(intent);
             }
-
             @Override public void onLikeClick(FoodItem item) {
                 item.liked = !item.liked;
-                Toast.makeText(MainActivity.this, (item.liked ? "Added to" : "Removed from") + " favorites", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this,
+                        (item.liked ? "Added to" : "Removed from") + " favorites",
+                        Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -149,11 +137,10 @@ public class MainActivity extends AppCompatActivity {
                 intent.putExtra(PizzaDetailActivity.EXTRA_TITLE, item.title);
                 intent.putExtra(PizzaDetailActivity.EXTRA_SUBTITLE, item.subtitle);
                 intent.putExtra(PizzaDetailActivity.EXTRA_RATING, item.rating);
-                intent.putExtra(PizzaDetailActivity.EXTRA_PRICE, 1590.0); // TODO: pass real price from DB
+                intent.putExtra(PizzaDetailActivity.EXTRA_PRICE, 1590.0);   // TODO real price
                 intent.putExtra(PizzaDetailActivity.EXTRA_IMAGE_RES, item.imageRes);
                 startActivity(intent);
             }
-
             @Override public void onLikeClick(FoodItem item) { item.liked = !item.liked; }
         });
 
@@ -162,13 +149,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void seedDemoData() {
-        // Use your existing drawables
-        masterData.add(new FoodItem("Margherita", "Classic Pizza", 4.8f, R.drawable.pizza_10));
-        masterData.add(new FoodItem("Pepperoni", "Double Cheese", 4.7f, R.drawable.chickenpizza_1));
-        masterData.add(new FoodItem("Veggie", "Fresh Garden", 4.6f, R.drawable.pizza_9));
-        masterData.add(new FoodItem("BBQ Chicken", "Smoky & Sweet", 4.5f, R.drawable.pizza_13));
-        masterData.add(new FoodItem("Hawaiian", "Pineapple Hit", 4.2f, R.drawable.pizza_9));
-        masterData.add(new FoodItem("Meat Lovers", "Loaded Feast", 4.9f, R.drawable.pizza_10));
+        // title, subtitle, rating, imageRes, reviews
+        masterData.add(new FoodItem("Margherita", "Classic Pizza", 4.8f, R.drawable.pizza_10, 120));
+        masterData.add(new FoodItem("Pepperoni", "Double Cheese", 4.7f, R.drawable.chickenpizza_1, 96));
+        masterData.add(new FoodItem("Veggie", "Fresh Garden", 4.6f, R.drawable.pizza_9, 73));
+        masterData.add(new FoodItem("BBQ Chicken", "Smoky & Sweet", 4.5f, R.drawable.pizza_13, 88));
+        masterData.add(new FoodItem("Hawaiian", "Pineapple Hit", 4.2f, R.drawable.pizza_9, 51));
+        masterData.add(new FoodItem("Meat Lovers", "Loaded Feast", 4.9f, R.drawable.pizza_10, 134));
     }
 
     private void filterPopular(String query) {
@@ -194,14 +181,15 @@ public class MainActivity extends AppCompatActivity {
 
     // ---------- Location ----------
     private void ensureLocationThenFetch() {
-        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
         } else {
             fetchNearestBranch();
         }
     }
 
-    @SuppressLint("MissingPermission") // we always call this after checking permission
+    @SuppressLint("MissingPermission")
     private void fetchNearestBranch() {
         try {
             fused.getLastLocation().addOnSuccessListener(this, loc -> {
@@ -224,12 +212,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void seedBranches() {
-        branches.add(new Branch("Galle",   6.0535, 80.2210));
-        branches.add(new Branch("Nugegoda",      6.8610, 79.8917));
-
+        branches.add(new Branch("Galle", 6.0535, 80.2210));
+        branches.add(new Branch("Nugegoda", 6.8610, 79.8917));
     }
 
-    private Branch findNearestBranch(Location user) {
+    private Branch findNearestBranch(@NonNull Location user) {
         Branch best = branches.get(0);
         double bestDist = distanceKm(user.getLatitude(), user.getLongitude(), best.lat, best.lng);
         for (int i = 1; i < branches.size(); i++) {
@@ -266,145 +253,4 @@ public class MainActivity extends AppCompatActivity {
         final String name; final double lat, lng;
         Branch(String name, double lat, double lng) { this.name = name; this.lat = lat; this.lng = lng; }
     }
-
-    private static class FoodItem {
-        final String title, subtitle;
-        final float rating;
-        @DrawableRes final int imageRes;
-        boolean liked = false;
-        FoodItem(String title, String subtitle, float rating, @DrawableRes int imageRes) {
-            this.title = title; this.subtitle = subtitle; this.rating = rating; this.imageRes = imageRes;
-        }
-    }
-
-    // ---------- Adapter ----------
-    public static class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.VH> {
-
-        interface OnFoodClickListener {
-            void onItemClick(FoodItem item);
-            void onLikeClick(FoodItem item);
-        }
-
-        private final List<FoodItem> data;
-        private final OnFoodClickListener listener;
-
-        public FoodAdapter(List<FoodItem> data, OnFoodClickListener listener) {
-            this.data = data;
-            this.listener = listener;
-        }
-
-        @NonNull
-        @Override
-        public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // Build a MaterialCard programmatically
-            MaterialCardView card = new MaterialCardView(parent.getContext());
-            RecyclerView.LayoutParams lp = new RecyclerView.LayoutParams(dp(parent, 180), ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.setMargins(dp(parent, 6), dp(parent, 6), dp(parent, 6), dp(parent, 6));
-            card.setLayoutParams(lp);
-            card.setRadius(dp(parent, 16));
-            card.setCardElevation(dp(parent, 4));
-            card.setUseCompatPadding(true);
-
-            LinearLayout root = new LinearLayout(parent.getContext());
-            root.setOrientation(LinearLayout.VERTICAL);
-            root.setPadding(dp(parent, 10), dp(parent, 10), dp(parent, 10), dp(parent, 10));
-            card.addView(root);
-
-            ImageView image = new ImageView(parent.getContext());
-            LinearLayout.LayoutParams imgLp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dp(parent, 110));
-            image.setLayoutParams(imgLp);
-            image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            image.setBackground(ContextCompat.getDrawable(parent.getContext(), R.drawable.bg_round_16));
-            root.addView(image);
-
-            TextView title = new TextView(parent.getContext());
-            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-            title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
-            LinearLayout.LayoutParams tLp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            tLp.topMargin = dp(parent, 8);
-            title.setLayoutParams(tLp);
-            root.addView(title);
-
-            TextView subtitle = new TextView(parent.getContext());
-            subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-            subtitle.setAlpha(0.7f);
-            root.addView(subtitle);
-
-            LinearLayout row = new LinearLayout(parent.getContext());
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            LinearLayout.LayoutParams rLp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            rLp.topMargin = dp(parent, 6);
-            row.setLayoutParams(rLp);
-            root.addView(row);
-
-            ImageView star = new ImageView(parent.getContext());
-            star.setImageResource(R.drawable.ic_star_24);
-            LinearLayout.LayoutParams sLp = new LinearLayout.LayoutParams(dp(parent, 16), dp(parent, 16));
-            star.setLayoutParams(sLp);
-            row.addView(star);
-
-            TextView rating = new TextView(parent.getContext());
-            rating.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-            rating.setAlpha(0.85f);
-            rating.setText(" 4.8");
-            row.addView(rating);
-
-            Space spacer = new Space(parent.getContext());
-            LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(0, 1, 1f);
-            spacer.setLayoutParams(sp);
-            row.addView(spacer);
-
-            ImageButton like = new ImageButton(parent.getContext());
-            like.setImageResource(R.drawable.ic_heart_outline_24);
-            like.setBackground(null);
-            LinearLayout.LayoutParams lLp = new LinearLayout.LayoutParams(dp(parent, 28), dp(parent, 28));
-            like.setLayoutParams(lLp);
-            row.addView(like);
-
-            return new VH(card, image, title, subtitle, rating, like);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull VH h, int position) {
-            FoodItem item = data.get(position);
-            h.image.setImageResource(item.imageRes);
-            h.title.setText(item.title);
-            h.subtitle.setText(item.subtitle);
-            h.rating.setText(" " + item.rating);
-            h.like.setImageResource(item.liked ? android.R.drawable.btn_star_big_on : R.drawable.ic_heart_outline_24);
-
-            h.itemView.setOnClickListener(v -> { if (listener != null) listener.onItemClick(item); });
-            h.like.setOnClickListener(v -> {
-                if (listener != null) listener.onLikeClick(item);
-                notifyItemChanged(h.getBindingAdapterPosition());
-            });
-        }
-
-        @Override
-        public int getItemCount() { return data.size(); }
-
-        static class VH extends RecyclerView.ViewHolder {
-            final ImageView image;
-            final TextView title, subtitle, rating;
-            final ImageButton like;
-            VH(@NonNull View itemView, ImageView image, TextView title, TextView subtitle, TextView rating, ImageButton like) {
-                super(itemView);
-                this.image = image;
-                this.title = title;
-                this.subtitle = subtitle;
-                this.rating = rating;
-                this.like = like;
-            }
-        }
-
-        private static int dp(ViewGroup parent, int dp) {
-            return (int) TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_DIP, dp, parent.getResources().getDisplayMetrics());
-        }
-    }
-
 }

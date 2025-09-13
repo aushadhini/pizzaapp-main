@@ -1,5 +1,9 @@
 package com.example.pizzaapp;
 
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -15,19 +19,16 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
-
-// NOTE: use the shared types
-// Remove any inner CartItem class you had before.
-import com.example.pizzaapp.CartItem;
-import com.example.pizzaapp.CartStore;
 
 public class CartActivity extends AppCompatActivity {
 
@@ -35,12 +36,15 @@ public class CartActivity extends AppCompatActivity {
     private TextView tvEmptyCart, tvSubtotal, tvDelivery, tvTotal;
     private Button btnCheckout;
 
-    // shared CartItem list
     private final List<CartItem> cart = new ArrayList<>();
     private CartAdapter adapter;
 
     private static final double DELIVERY_FEE = 250.0;
     private final DecimalFormat money = new DecimalFormat("#,##0.00");
+
+    // swipe visuals
+    private final ColorDrawable swipeBg = new ColorDrawable(Color.parseColor("#E53935")); // red
+    private Drawable deleteIcon; // set in onCreate
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,17 +61,20 @@ public class CartActivity extends AppCompatActivity {
         tvTotal = findViewById(R.id.tvTotal);
         btnCheckout = findViewById(R.id.btnCheckout);
 
+        deleteIcon = ContextCompat.getDrawable(this, R.drawable.ic_delete_24);
+        if (deleteIcon == null) {
+            // fallback built-in icon if you don't have ic_delete_24
+            deleteIcon = ContextCompat.getDrawable(this, android.R.drawable.ic_menu_delete);
+        }
+
         rvCart.setLayoutManager(new LinearLayoutManager(this));
         adapter = new CartAdapter(cart);
         rvCart.setAdapter(adapter);
 
-        // Load from shared store (works no matter where you opened Cart from)
-        cart.clear();
-        cart.addAll(CartStore.get().snapshot());
-        adapter.notifyDataSetChanged();
+        attachSwipeToDelete();   // ← enable swipe
 
-        recalcTotals();
-        toggleEmpty();
+        // initial load
+        syncFromStore();
 
         btnCheckout.setOnClickListener(v -> {
             if (cart.isEmpty()) {
@@ -76,6 +83,20 @@ public class CartActivity extends AppCompatActivity {
                 Toast.makeText(this, "Checkout not implemented (demo)", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        syncFromStore();
+    }
+
+    private void syncFromStore() {
+        cart.clear();
+        cart.addAll(CartStore.get().items());
+        adapter.notifyDataSetChanged();
+        recalcTotals();
+        toggleEmpty();
     }
 
     private void toggleEmpty() {
@@ -88,13 +109,74 @@ public class CartActivity extends AppCompatActivity {
 
     private void recalcTotals() {
         double subtotal = 0.0;
-        for (CartItem c : cart) subtotal += c.price * c.qty;
+        for (CartItem c : cart) subtotal += c.unitPrice * c.qty;
         double delivery = subtotal > 0 ? DELIVERY_FEE : 0.0;
         double total = subtotal + delivery;
 
         tvSubtotal.setText("Subtotal: Rs\u00A0" + money.format(subtotal));
         tvDelivery.setText("Delivery: Rs\u00A0" + money.format(delivery));
         tvTotal.setText("Total: Rs\u00A0" + money.format(total));
+    }
+
+    private void attachSwipeToDelete() {
+        ItemTouchHelper.SimpleCallback callback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+            @Override public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder vh, @NonNull RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                int pos = viewHolder.getBindingAdapterPosition();
+                if (pos == RecyclerView.NO_POSITION) return;
+
+                // remove from adapter + store
+                CartItem removed = cart.remove(pos);
+                adapter.notifyItemRemoved(pos);
+                CartStore.get().removeFirst(removed.title, removed.unitPrice);
+
+                recalcTotals();
+                toggleEmpty();
+
+                // Optional: undo
+                Snackbar.make(rvCart, "Removed " + removed.title, Snackbar.LENGTH_LONG)
+                        .setAction("UNDO", v -> {
+                            cart.add(pos, removed);
+                            adapter.notifyItemInserted(pos);
+                            rvCart.scrollToPosition(pos);
+                            CartStore.get().addOrIncrement(removed.title, removed.subtitle, removed.unitPrice, removed.qty, removed.imageRes);
+                            recalcTotals();
+                            toggleEmpty();
+                        })
+                        .show();
+            }
+
+            @Override
+            public void onChildDraw(@NonNull Canvas c, @NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder vh,
+                                    float dX, float dY, int actionState, boolean isCurrentlyActive) {
+                super.onChildDraw(c, rv, vh, dX, dY, actionState, isCurrentlyActive);
+
+                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && dX < 0) {
+                    View itemView = vh.itemView;
+
+                    // draw red bg
+                    swipeBg.setBounds(itemView.getRight() + (int) dX, itemView.getTop(), itemView.getRight(), itemView.getBottom());
+                    swipeBg.draw(c);
+
+                    // draw trash icon
+                    if (deleteIcon != null) {
+                        int iconMargin = (itemView.getHeight() - deleteIcon.getIntrinsicHeight()) / 2;
+                        int iconLeft = itemView.getRight() - iconMargin - deleteIcon.getIntrinsicWidth();
+                        int iconRight = itemView.getRight() - iconMargin;
+                        int iconTop = itemView.getTop() + (itemView.getHeight() - deleteIcon.getIntrinsicHeight()) / 2;
+                        int iconBottom = iconTop + deleteIcon.getIntrinsicHeight();
+                        deleteIcon.setBounds(iconLeft, iconTop, iconRight, iconBottom);
+                        deleteIcon.draw(c);
+                    }
+                }
+            }
+        };
+
+        new ItemTouchHelper(callback).attachToRecyclerView(rvCart);
     }
 
     // ---------------- Adapter (read-only rows) ----------------
@@ -181,7 +263,7 @@ public class CartActivity extends AppCompatActivity {
             h.image.setImageResource(item.imageRes);
             h.title.setText(item.title);
             h.subtitle.setText(item.subtitle);
-            h.price.setText("Rs\u00A0" + money.format(item.price));
+            h.price.setText("Rs\u00A0" + money.format(item.unitPrice)); // unit price
             h.qty.setText("Qty: " + item.qty);
         }
 
@@ -200,8 +282,8 @@ public class CartActivity extends AppCompatActivity {
         }
 
         private static int dp(ViewGroup parent, int dp) {
-            return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp,
-                    parent.getResources().getDisplayMetrics());
+            return (int) TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP, dp, parent.getResources().getDisplayMetrics());
         }
     }
 }

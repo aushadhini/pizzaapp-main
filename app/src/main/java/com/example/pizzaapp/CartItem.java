@@ -1,15 +1,23 @@
 package com.example.pizzaapp;
-import com.example.pizzaapp.CartItem;
 
 import androidx.annotation.DrawableRes;
 
 public class CartItem {
-    public final String title, subtitle;
-    public final double price;
+    public final String title;
+    public final String subtitle;
+    public final double unitPrice;
     public int qty;
     @DrawableRes public final int imageRes;
 
-    public CartItem(String t, String s, double p, int q, @DrawableRes int res) {
-        title = t; subtitle = s; price = p; qty = q; imageRes = res;
+    public CartItem(String title, String subtitle, double unitPrice, int qty, @DrawableRes int imageRes) {
+        this.title = title;
+        this.subtitle = subtitle;
+        this.unitPrice = unitPrice;
+        this.qty = qty;
+        this.imageRes = imageRes;
+    }
+
+    public double total() {
+        return unitPrice * qty;
     }
 }
