@@ -8,11 +8,9 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.Space;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -26,12 +24,18 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+// NOTE: use the shared types
+// Remove any inner CartItem class you had before.
+import com.example.pizzaapp.CartItem;
+import com.example.pizzaapp.CartStore;
+
 public class CartActivity extends AppCompatActivity {
 
     private RecyclerView rvCart;
     private TextView tvEmptyCart, tvSubtotal, tvDelivery, tvTotal;
     private Button btnCheckout;
 
+    // shared CartItem list
     private final List<CartItem> cart = new ArrayList<>();
     private CartAdapter adapter;
 
@@ -43,7 +47,6 @@ public class CartActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cart);
 
-        // Toolbar back
         Toolbar tb = findViewById(R.id.toolbar);
         if (tb != null) tb.setNavigationOnClickListener(v -> onBackPressed());
 
@@ -55,24 +58,13 @@ public class CartActivity extends AppCompatActivity {
         btnCheckout = findViewById(R.id.btnCheckout);
 
         rvCart.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new CartAdapter(cart, new CartAdapter.Listener() {
-            @Override public void onQtyChanged() { recalcTotals(); toggleEmpty(); }
-            @Override public void onRemoved()    { recalcTotals(); toggleEmpty(); }
-        });
+        adapter = new CartAdapter(cart);
         rvCart.setAdapter(adapter);
 
-        if (getIntent() != null && getIntent().hasExtra("cart_title")) {
-            String t = getIntent().getStringExtra("cart_title");
-            String s = getIntent().getStringExtra("cart_subtitle");
-            double p = getIntent().getDoubleExtra("cart_price", 0);
-            int q    = getIntent().getIntExtra("cart_qty", 1);
-            int res  = getIntent().getIntExtra("cart_image_res", R.drawable.ic_image_placeholder);
-            cart.add(new CartActivity.CartItem(t, s, p, q, res));
-            adapter.notifyItemInserted(cart.size() - 1);
-        }
-
-        // Demo items — replace with your real Add-to-Cart flow
-        seedDemo();
+        // Load from shared store (works no matter where you opened Cart from)
+        cart.clear();
+        cart.addAll(CartStore.get().snapshot());
+        adapter.notifyDataSetChanged();
 
         recalcTotals();
         toggleEmpty();
@@ -80,17 +72,10 @@ public class CartActivity extends AppCompatActivity {
         btnCheckout.setOnClickListener(v -> {
             if (cart.isEmpty()) {
                 Toast.makeText(this, "Your cart is empty", Toast.LENGTH_SHORT).show();
-                return;
+            } else {
+                Toast.makeText(this, "Checkout not implemented (demo)", Toast.LENGTH_SHORT).show();
             }
-            Toast.makeText(this, "Checkout not implemented (demo)", Toast.LENGTH_SHORT).show();
         });
-    }
-
-    private void seedDemo() {
-        cart.clear();
-        cart.add(new CartItem("Margherita", "Classic Pizza", 1590.0, 1, R.drawable.ic_image_placeholder));
-        cart.add(new CartItem("Pepperoni", "Double Cheese", 1790.0, 2, R.drawable.ic_image_placeholder));
-        adapter.notifyDataSetChanged();
     }
 
     private void toggleEmpty() {
@@ -107,35 +92,18 @@ public class CartActivity extends AppCompatActivity {
         double delivery = subtotal > 0 ? DELIVERY_FEE : 0.0;
         double total = subtotal + delivery;
 
-        tvSubtotal.setText("Subtotal: Rs " + money.format(subtotal));
-        tvDelivery.setText("Delivery: Rs " + money.format(delivery));
-        tvTotal.setText("Total: Rs " + money.format(total));
+        tvSubtotal.setText("Subtotal: Rs\u00A0" + money.format(subtotal));
+        tvDelivery.setText("Delivery: Rs\u00A0" + money.format(delivery));
+        tvTotal.setText("Total: Rs\u00A0" + money.format(total));
     }
 
-    // ---------------- Models ----------------
-    static class CartItem {
-        final String title, subtitle;
-        final double price;
-        int qty;
-        @DrawableRes final int imageRes;
-        CartItem(String t, String s, double p, int q, @DrawableRes int res) {
-            title=t; subtitle=s; price=p; qty=q; imageRes=res;
-        }
-    }
-
-    // --------------- Adapter ----------------
+    // ---------------- Adapter (read-only rows) ----------------
     static class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartVH> {
 
-        interface Listener { void onQtyChanged(); void onRemoved(); }
-
         private final List<CartItem> data;
-        private final Listener listener;
         private final DecimalFormat money = new DecimalFormat("#,##0.00");
 
-        CartAdapter(List<CartItem> data, Listener l) {
-            this.data = data;
-            this.listener = l;
-        }
+        CartAdapter(List<CartItem> data) { this.data = data; }
 
         @NonNull
         @Override
@@ -166,7 +134,7 @@ public class CartActivity extends AppCompatActivity {
             image.setBackground(ContextCompat.getDrawable(parent.getContext(), R.drawable.bg_round_16));
             row.addView(image);
 
-            // Texts
+            // Texts column
             LinearLayout col = new LinearLayout(parent.getContext());
             col.setOrientation(LinearLayout.VERTICAL);
             LinearLayout.LayoutParams colLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
@@ -177,99 +145,57 @@ public class CartActivity extends AppCompatActivity {
             TextView title = new TextView(parent.getContext());
             title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
             title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+            title.setMaxLines(1);
             col.addView(title);
 
             TextView subtitle = new TextView(parent.getContext());
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             subtitle.setAlpha(0.7f);
+            subtitle.setMaxLines(1);
             col.addView(subtitle);
+
+            LinearLayout bottomRow = new LinearLayout(parent.getContext());
+            bottomRow.setOrientation(LinearLayout.HORIZONTAL);
+            bottomRow.setGravity(Gravity.CENTER_VERTICAL);
+            col.addView(bottomRow);
 
             TextView price = new TextView(parent.getContext());
             price.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
             price.setTextColor(0xFF222222);
-            col.addView(price);
+            LinearLayout.LayoutParams priceLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            price.setLayoutParams(priceLp);
+            bottomRow.addView(price);
 
-            // Qty controls
-            LinearLayout qtyRow = new LinearLayout(parent.getContext());
-            qtyRow.setOrientation(LinearLayout.HORIZONTAL);
-            qtyRow.setGravity(Gravity.CENTER);
-            row.addView(qtyRow);
+            TextView qty = new TextView(parent.getContext());
+            qty.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            qty.setTextColor(0xFF222222);
+            qty.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
+            bottomRow.addView(qty);
 
-            TextView btnMinus = pillButton(parent, "−");
-            TextView tvQty = new TextView(parent.getContext());
-            LinearLayout.LayoutParams qlp = new LinearLayout.LayoutParams(dp(parent, 40), dp(parent, 36));
-            qlp.leftMargin = dp(parent, 6);
-            qlp.rightMargin = dp(parent, 6);
-            tvQty.setLayoutParams(qlp);
-            tvQty.setGravity(Gravity.CENTER);
-            tvQty.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-            tvQty.setText("1");
-            TextView btnPlus = pillButton(parent, "+");
-
-            qtyRow.addView(btnMinus); qtyRow.addView(tvQty); qtyRow.addView(btnPlus);
-
-            return new CartVH(card, image, title, subtitle, price, btnMinus, tvQty, btnPlus);
-        }
-
-        private static TextView pillButton(ViewGroup parent, String text) {
-            TextView tv = new TextView(parent.getContext());
-            tv.setText(text);
-            tv.setGravity(Gravity.CENTER);
-            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-            tv.setTextColor(0xFF000000);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(parent, 36), dp(parent, 36));
-            tv.setLayoutParams(lp);
-            tv.setBackground(ContextCompat.getDrawable(parent.getContext(), R.drawable.bg_round_16));
-            tv.setClickable(true);
-            tv.setFocusable(true);
-            return tv;
+            return new CartVH(card, image, title, subtitle, price, qty);
         }
 
         @Override
         public void onBindViewHolder(@NonNull CartVH h, int position) {
             CartItem item = data.get(position);
-
             h.image.setImageResource(item.imageRes);
             h.title.setText(item.title);
             h.subtitle.setText(item.subtitle);
-            h.price.setText("Rs " + money.format(item.price));
-            h.qtyText.setText(String.valueOf(item.qty));
-
-            h.btnPlus.setOnClickListener(v -> {
-                item.qty++;
-                h.qtyText.setText(String.valueOf(item.qty));
-                if (listener != null) listener.onQtyChanged();
-            });
-
-            h.btnMinus.setOnClickListener(v -> {
-                if (item.qty > 1) {
-                    item.qty--;
-                    h.qtyText.setText(String.valueOf(item.qty));
-                    if (listener != null) listener.onQtyChanged();
-                } else {
-                    int idx = h.getBindingAdapterPosition();
-                    if (idx != RecyclerView.NO_POSITION) {
-                        data.remove(idx);
-                        notifyItemRemoved(idx);
-                        if (listener != null) listener.onRemoved();
-                    }
-                }
-            });
+            h.price.setText("Rs\u00A0" + money.format(item.price));
+            h.qty.setText("Qty: " + item.qty);
         }
 
         @Override
         public int getItemCount() { return data.size(); }
 
-        // ---- ViewHolder (matches the generics!) ----
         static class CartVH extends RecyclerView.ViewHolder {
             final ImageView image;
-            final TextView title, subtitle, price;
-            final TextView btnMinus, qtyText, btnPlus;
+            final TextView title, subtitle, price, qty;
             CartVH(@NonNull View itemView, ImageView image, TextView title, TextView subtitle,
-                   TextView price, TextView btnMinus, TextView qtyText, TextView btnPlus) {
+                   TextView price, TextView qty) {
                 super(itemView);
                 this.image = image; this.title = title; this.subtitle = subtitle;
-                this.price = price; this.btnMinus = btnMinus; this.qtyText = qtyText; this.btnPlus = btnPlus;
+                this.price = price; this.qty = qty;
             }
         }
 

@@ -163,12 +163,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void seedDemoData() {
         // Use your existing drawables
-        masterData.add(new FoodItem("Margherita", "Classic Pizza", 4.8f, R.drawable.pizza_1));
-        masterData.add(new FoodItem("Pepperoni", "Double Cheese", 4.7f, R.drawable.pizza_2));
-        masterData.add(new FoodItem("Veggie", "Fresh Garden", 4.6f, R.drawable.pizza_3));
-        masterData.add(new FoodItem("BBQ Chicken", "Smoky & Sweet", 4.5f, R.drawable.pizza_4));
-        masterData.add(new FoodItem("Hawaiian", "Pineapple Hit", 4.2f, R.drawable.pizza_5));
-        masterData.add(new FoodItem("Meat Lovers", "Loaded Feast", 4.9f, R.drawable.pizza_1));
+        masterData.add(new FoodItem("Margherita", "Classic Pizza", 4.8f, R.drawable.pizza_10));
+        masterData.add(new FoodItem("Pepperoni", "Double Cheese", 4.7f, R.drawable.chickenpizza_1));
+        masterData.add(new FoodItem("Veggie", "Fresh Garden", 4.6f, R.drawable.pizza_9));
+        masterData.add(new FoodItem("BBQ Chicken", "Smoky & Sweet", 4.5f, R.drawable.pizza_13));
+        masterData.add(new FoodItem("Hawaiian", "Pineapple Hit", 4.2f, R.drawable.pizza_9));
+        masterData.add(new FoodItem("Meat Lovers", "Loaded Feast", 4.9f, R.drawable.pizza_10));
     }
 
     private void filterPopular(String query) {

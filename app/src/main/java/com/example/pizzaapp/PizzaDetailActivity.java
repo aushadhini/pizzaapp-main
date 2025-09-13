@@ -94,16 +94,20 @@ public class PizzaDetailActivity extends AppCompatActivity {
         });
 
         btnAddToCart.setOnClickListener(v -> {
-            // Open CartActivity and pass the item (title, subtitle, price, qty, imageRes)
-            Intent go = new Intent(PizzaDetailActivity.this, CartActivity.class);
-            go.putExtra("cart_title",    tvTitle.getText().toString());
-            go.putExtra("cart_subtitle", tvSubtitle.getText().toString());
-            go.putExtra("cart_price",    price);
-            go.putExtra("cart_qty",      qty);
-            go.putExtra("cart_image_res", imageRes);
-            startActivity(go);
+            CartStore.get().addOrIncrement(
+                    new CartItem(
+                            tvTitle.getText().toString(),
+                            tvSubtitle.getText().toString(),
+                            price,
+                            qty,
+                            imageRes
+                    )
+            );
+            startActivity(new Intent(PizzaDetailActivity.this, CartActivity.class));
             Toast.makeText(this, "Added to cart", Toast.LENGTH_SHORT).show();
         });
+
+
     }
 
     private void updateTotal() {
