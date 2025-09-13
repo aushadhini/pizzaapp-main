@@ -78,7 +78,7 @@
                     android:layout_height="48dp"
 
                     android:contentDescription="@string/app_name"
-                    tools:src="@drawable/bell_icon" />
+                    tools:src="@drawable/btn_4" />
             </LinearLayout>
 
             <!-- Search + filter -->

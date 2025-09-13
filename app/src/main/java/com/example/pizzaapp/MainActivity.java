@@ -128,8 +128,15 @@ public class MainActivity extends AppCompatActivity {
 
         popularAdapter = new FoodAdapter(popularData, new FoodAdapter.OnFoodClickListener() {
             @Override public void onItemClick(FoodItem item) {
-                Toast.makeText(MainActivity.this, "Open: " + item.title, Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(MainActivity.this, PizzaDetailActivity.class);
+                intent.putExtra(PizzaDetailActivity.EXTRA_TITLE, item.title);
+                intent.putExtra(PizzaDetailActivity.EXTRA_SUBTITLE, item.subtitle);
+                intent.putExtra(PizzaDetailActivity.EXTRA_RATING, item.rating);
+                intent.putExtra(PizzaDetailActivity.EXTRA_PRICE, 1590.0); // TODO: pass real price from DB
+                intent.putExtra(PizzaDetailActivity.EXTRA_IMAGE_RES, item.imageRes);
+                startActivity(intent);
             }
+
             @Override public void onLikeClick(FoodItem item) {
                 item.liked = !item.liked;
                 Toast.makeText(MainActivity.this, (item.liked ? "Added to" : "Removed from") + " favorites", Toast.LENGTH_SHORT).show();
@@ -138,8 +145,15 @@ public class MainActivity extends AppCompatActivity {
 
         nearestAdapter = new FoodAdapter(nearestData, new FoodAdapter.OnFoodClickListener() {
             @Override public void onItemClick(FoodItem item) {
-                Toast.makeText(MainActivity.this, "Nearest: " + item.title, Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(MainActivity.this, PizzaDetailActivity.class);
+                intent.putExtra(PizzaDetailActivity.EXTRA_TITLE, item.title);
+                intent.putExtra(PizzaDetailActivity.EXTRA_SUBTITLE, item.subtitle);
+                intent.putExtra(PizzaDetailActivity.EXTRA_RATING, item.rating);
+                intent.putExtra(PizzaDetailActivity.EXTRA_PRICE, 1590.0); // TODO: pass real price from DB
+                intent.putExtra(PizzaDetailActivity.EXTRA_IMAGE_RES, item.imageRes);
+                startActivity(intent);
             }
+
             @Override public void onLikeClick(FoodItem item) { item.liked = !item.liked; }
         });
 

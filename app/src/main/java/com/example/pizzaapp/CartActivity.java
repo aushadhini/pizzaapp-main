@@ -61,6 +61,16 @@ public class CartActivity extends AppCompatActivity {
         });
         rvCart.setAdapter(adapter);
 
+        if (getIntent() != null && getIntent().hasExtra("cart_title")) {
+            String t = getIntent().getStringExtra("cart_title");
+            String s = getIntent().getStringExtra("cart_subtitle");
+            double p = getIntent().getDoubleExtra("cart_price", 0);
+            int q    = getIntent().getIntExtra("cart_qty", 1);
+            int res  = getIntent().getIntExtra("cart_image_res", R.drawable.ic_image_placeholder);
+            cart.add(new CartActivity.CartItem(t, s, p, q, res));
+            adapter.notifyItemInserted(cart.size() - 1);
+        }
+
         // Demo items — replace with your real Add-to-Cart flow
         seedDemo();
 
