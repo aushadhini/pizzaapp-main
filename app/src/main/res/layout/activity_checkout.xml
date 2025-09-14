@@ -28,6 +28,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
+        android:clipToPadding="false"
         android:padding="16dp"
         android:layout_marginBottom="96dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
@@ -88,7 +89,7 @@
                             android:layout_height="wrap_content"
                             android:text="Change"
                             android:textStyle="bold"
-                            android:textColor="?attr/colorPrimary"/>
+                           />
                     </LinearLayout>
 
                     <TextView
@@ -140,9 +141,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="12dp"/>
+            <View android:layout_width="match_parent" android:layout_height="12dp"/>
 
             <!-- Receiver details -->
             <com.google.android.material.card.MaterialCardView
@@ -167,6 +166,7 @@
                         android:textSize="18sp"
                         android:layout_marginBottom="8dp"/>
 
+                    <!-- Title dropdown -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -176,9 +176,8 @@
                             android:id="@+id/etTitle"
                             android:layout_width="match_parent"
                             android:layout_height="48dp"
-                            android:focusable="false"
-                            android:clickable="true"
-                            android:inputType="none"/>
+                            android:entries="@array/title_options"
+                            />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
@@ -225,9 +224,7 @@
                                 android:text="+94"/>
                         </com.google.android.material.textfield.TextInputLayout>
 
-                        <Space
-                            android:layout_width="8dp"
-                            android:layout_height="0dp" />
+                        <View android:layout_width="8dp" android:layout_height="0dp" />
 
                         <com.google.android.material.textfield.TextInputLayout
                             android:layout_width="0dp"
@@ -257,9 +254,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="12dp"/>
+            <View android:layout_width="match_parent" android:layout_height="12dp"/>
 
             <!-- Payment -->
             <com.google.android.material.card.MaterialCardView
@@ -330,18 +325,12 @@
                             android:layout_height="wrap_content"
                             android:text="Visa/Master"/>
 
-                        <com.google.android.material.radiobutton.MaterialRadioButton
-                            android:id="@+id/rbAmex"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Amex"/>
+
                     </RadioGroup>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="12dp"/>
+            <View android:layout_width="match_parent" android:layout_height="12dp"/>
 
             <!-- Terms -->
             <LinearLayout
@@ -353,8 +342,7 @@
                 <com.google.android.material.checkbox.MaterialCheckBox
                     android:id="@+id/cbTerms"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:buttonTint="@android:color/black"/>
+                    android:layout_height="wrap_content"/>
 
                 <TextView
                     android:id="@+id/tvTerms"
@@ -374,41 +362,42 @@
         android:id="@+id/payBar"
         android:layout_width="match_parent"
         android:layout_height="72dp"
-        android:layout_gravity="bottom|center_horizontal"
+        android:layout_gravity="bottom"
         android:layout_margin="12dp"
         app:cardCornerRadius="16dp"
-        app:cardElevation="10dp"
-        app:cardUseCompatPadding="true">
+        app:cardElevation="10dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:backgroundTint="@color/black"
             android:padding="16dp">
 
             <TextView
                 android:id="@+id/tvItemCount"
                 android:layout_width="wrap_content"
-                android:layout_height="5dp"
+                android:layout_height="wrap_content"
+                android:minWidth="24dp"
+                android:minHeight="24dp"
+                android:gravity="center"
+                android:paddingHorizontal="8dp"
                 android:text="1"
-                android:textColor="@color/black"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:textColor="@android:color/white"
+                android:background="@drawable/bg_count_chip"/>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPayNow"
                 style="?attr/materialButtonStyle"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
-                android:layout_weight="4"
                 android:layout_marginStart="12dp"
+                android:layout_weight="1"
                 android:text="Pay Now"
                 android:textAllCaps="false"
-                app:backgroundTint="@color/red"
-                android:textColor="@android:color/white" />
-
-
+                android:textColor="@android:color/white"
+                app:backgroundTint="@color/red"/>
 
             <TextView
                 android:id="@+id/tvTotal"
