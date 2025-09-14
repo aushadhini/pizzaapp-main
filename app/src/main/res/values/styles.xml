@@ -1,48 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <!-- Base chip -->
     <style name="Chip_Base">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">36dp</item>
-        <item name="android:layout_marginRight">8dp</item>
-        <item name="android:paddingLeft">16dp</item>
-        <item name="android:paddingRight">16dp</item>
+        <item name="android:layout_marginEnd">8dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
         <item name="android:gravity">center</item>
-        <item name="android:textColor">@color/chipText</item>
+        <item name="android:textColor">@android:color/black</item>
         <item name="android:background">@drawable/bg_chip</item>
     </style>
 
-    <!-- Unselected chip -->
     <style name="Chip_Normal" parent="Chip_Base" />
 
-    <!-- Selected chip -->
     <style name="Chip_Selected" parent="Chip_Base">
         <item name="android:background">@drawable/bg_chip_selected</item>
         <item name="android:textColor">@android:color/white</item>
-        <!-- values/styles.xml -->
-
-
     </style>
 
-    <!-- Optional base style (only if you used @style/Account somewhere) -->
+    <!-- Optional base (only if referenced somewhere) -->
     <style name="Account" />
 
-    <!-- The row card style you referenced as @style/Account.RowCard -->
+    <!-- Row card style for MaterialCardView -->
     <style name="Account.RowCard">
-        <!-- width/height/margins -->
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginBottom">12dp</item>
 
-        <!-- MaterialCardView props (use app: in layout) -->
+        <!-- These apply on MaterialCardView -->
         <item name="cardCornerRadius">14dp</item>
         <item name="cardUseCompatPadding">true</item>
         <item name="strokeWidth">0dp</item>
 
-        <!-- touch feedback -->
         <item name="android:clickable">true</item>
         <item name="android:foreground">?attr/selectableItemBackground</item>
     </style>
-
 
 </resources>

@@ -1,5 +1,7 @@
 package com.example.pizzaapp;
 
+import android.content.Context;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -30,6 +32,14 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Cart screen with swipe-to-delete, totals and a Checkout hand-off.
+ * Expects activity_cart.xml to contain:
+ *  - Toolbar (id: toolbar)
+ *  - RecyclerView (id: rvCart)
+ *  - TextViews: tvEmptyCart, tvSubtotal, tvDelivery, tvTotal
+ *  - Button: btnCheckout
+ */
 public class CartActivity extends AppCompatActivity {
 
     private RecyclerView rvCart;
@@ -46,6 +56,10 @@ public class CartActivity extends AppCompatActivity {
     private final ColorDrawable swipeBg = new ColorDrawable(Color.parseColor("#E53935")); // red
     private Drawable deleteIcon; // set in onCreate
 
+    // cached totals
+    private double subtotal = 0.0, delivery = 0.0, grandTotal = 0.0;
+    private int totalQty = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,11 +68,11 @@ public class CartActivity extends AppCompatActivity {
         Toolbar tb = findViewById(R.id.toolbar);
         if (tb != null) tb.setNavigationOnClickListener(v -> onBackPressed());
 
-        rvCart = findViewById(R.id.rvCart);
+        rvCart      = findViewById(R.id.rvCart);
         tvEmptyCart = findViewById(R.id.tvEmptyCart);
-        tvSubtotal = findViewById(R.id.tvSubtotal);
-        tvDelivery = findViewById(R.id.tvDelivery);
-        tvTotal = findViewById(R.id.tvTotal);
+        tvSubtotal  = findViewById(R.id.tvSubtotal);
+        tvDelivery  = findViewById(R.id.tvDelivery);
+        tvTotal     = findViewById(R.id.tvTotal);
         btnCheckout = findViewById(R.id.btnCheckout);
 
         deleteIcon = ContextCompat.getDrawable(this, R.drawable.ic_delete_24);
@@ -71,7 +85,7 @@ public class CartActivity extends AppCompatActivity {
         adapter = new CartAdapter(cart);
         rvCart.setAdapter(adapter);
 
-        attachSwipeToDelete();   // ← enable swipe
+        attachSwipeToDelete();
 
         // initial load
         syncFromStore();
@@ -79,9 +93,20 @@ public class CartActivity extends AppCompatActivity {
         btnCheckout.setOnClickListener(v -> {
             if (cart.isEmpty()) {
                 Toast.makeText(this, "Your cart is empty", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Checkout not implemented (demo)", Toast.LENGTH_SHORT).show();
+                return;
             }
+
+            // Read saved delivery info (filled when user picked address on map)
+            String address = DeliveryPrefs.getAddress(this);       // e.g. "30b Temples Rd, Boralesgamuwa"
+            String outlet  = DeliveryPrefs.getNearestOutlet(this); // e.g. "Boralesgamuwa"
+
+            // Launch the checkout page you built earlier
+            Intent i = new Intent(this, CheckoutActivity.class);
+            i.putExtra(CheckoutActivity.EXTRA_ADDRESS, address);
+            i.putExtra(CheckoutActivity.EXTRA_OUTLET,  outlet);
+            i.putExtra(CheckoutActivity.EXTRA_TOTAL,   grandTotal);
+            i.putExtra(CheckoutActivity.EXTRA_COUNT,   totalQty);
+            startActivity(i);
         });
     }
 
@@ -93,7 +118,7 @@ public class CartActivity extends AppCompatActivity {
 
     private void syncFromStore() {
         cart.clear();
-        cart.addAll(CartStore.get().items());
+        cart.addAll(CartStore.get().items()); // your backing store
         adapter.notifyDataSetChanged();
         recalcTotals();
         toggleEmpty();
@@ -108,14 +133,18 @@ public class CartActivity extends AppCompatActivity {
     }
 
     private void recalcTotals() {
-        double subtotal = 0.0;
-        for (CartItem c : cart) subtotal += c.unitPrice * c.qty;
-        double delivery = subtotal > 0 ? DELIVERY_FEE : 0.0;
-        double total = subtotal + delivery;
+        subtotal = 0.0;
+        totalQty = 0;
+        for (CartItem c : cart) {
+            subtotal += c.unitPrice * c.qty;
+            totalQty += c.qty;
+        }
+        delivery   = subtotal > 0 ? DELIVERY_FEE : 0.0;
+        grandTotal = subtotal + delivery;
 
         tvSubtotal.setText("Subtotal: Rs\u00A0" + money.format(subtotal));
         tvDelivery.setText("Delivery: Rs\u00A0" + money.format(delivery));
-        tvTotal.setText("Total: Rs\u00A0" + money.format(total));
+        tvTotal.setText("Total: Rs\u00A0" + money.format(grandTotal));
     }
 
     private void attachSwipeToDelete() {
@@ -143,7 +172,9 @@ public class CartActivity extends AppCompatActivity {
                             cart.add(pos, removed);
                             adapter.notifyItemInserted(pos);
                             rvCart.scrollToPosition(pos);
-                            CartStore.get().addOrIncrement(removed.title, removed.subtitle, removed.unitPrice, removed.qty, removed.imageRes);
+                            CartStore.get().addOrIncrement(
+                                    removed.title, removed.subtitle, removed.unitPrice, removed.qty, removed.imageRes
+                            );
                             recalcTotals();
                             toggleEmpty();
                         })
@@ -165,9 +196,9 @@ public class CartActivity extends AppCompatActivity {
                     // draw trash icon
                     if (deleteIcon != null) {
                         int iconMargin = (itemView.getHeight() - deleteIcon.getIntrinsicHeight()) / 2;
-                        int iconLeft = itemView.getRight() - iconMargin - deleteIcon.getIntrinsicWidth();
-                        int iconRight = itemView.getRight() - iconMargin;
-                        int iconTop = itemView.getTop() + (itemView.getHeight() - deleteIcon.getIntrinsicHeight()) / 2;
+                        int iconLeft   = itemView.getRight() - iconMargin - deleteIcon.getIntrinsicWidth();
+                        int iconRight  = itemView.getRight() - iconMargin;
+                        int iconTop    = itemView.getTop() + (itemView.getHeight() - deleteIcon.getIntrinsicHeight()) / 2;
                         int iconBottom = iconTop + deleteIcon.getIntrinsicHeight();
                         deleteIcon.setBounds(iconLeft, iconTop, iconRight, iconBottom);
                         deleteIcon.draw(c);
@@ -284,6 +315,33 @@ public class CartActivity extends AppCompatActivity {
         private static int dp(ViewGroup parent, int dp) {
             return (int) TypedValue.applyDimension(
                     TypedValue.COMPLEX_UNIT_DIP, dp, parent.getResources().getDisplayMetrics());
+        }
+    }
+
+    // ---------------- Saved delivery helpers ----------------
+    /**
+     * Simple prefs helper so we can show address/outlet in checkout.
+     * Save into this from DeliveryActivity / MainActivity when user picks a location.
+     */
+    public static final class DeliveryPrefs {
+        private static final String PREFS = "delivery_prefs";
+        private static final String KEY_ADDR   = "last_address";
+        private static final String KEY_OUTLET = "nearest_outlet";
+
+        public static void save(Context c, String address, String outlet) {
+            c.getSharedPreferences(PREFS, MODE_PRIVATE)
+                    .edit()
+                    .putString(KEY_ADDR, address == null ? "" : address)
+                    .putString(KEY_OUTLET, outlet == null ? "" : outlet)
+                    .apply();
+        }
+
+        public static String getAddress(Context c) {
+            return c.getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_ADDR, "");
+        }
+
+        public static String getNearestOutlet(Context c) {
+            return c.getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_OUTLET, "");
         }
     }
 }

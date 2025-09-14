@@ -1,31 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.example.pizzaapp">
 
-    <!-- Network (Firebase/Glide) -->
+    <!-- Network (Firebase/Glide/Maps) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- Location (only if your app really uses it) -->
+    <!-- Location (for nearest branch & map my-location) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Image picking permissions:
-         - Android 13+ (API 33+): READ_MEDIA_IMAGES
-         - Android 12 and below: READ_EXTERNAL_STORAGE
-         WRITE_EXTERNAL_STORAGE is deprecated; don't request it on 29+ -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
+    <!-- (Optional) Declare GPS hardware as not strictly required -->
+    <uses-feature
+        android:name="android.hardware.location.gps"
+        android:required="false" />
+
     <application
         android:allowBackup="true"
-        android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.PizzaMania">
+        android:theme="@style/Theme.PizzaMania"
+        tools:targetApi="34">
 
         <!-- Launcher / Splash -->
         <activity
@@ -43,9 +47,6 @@
             android:name=".LoginActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
-
-        <!-- Make sure the class name matches your file exactly:
-             if it's SignUpActivity.java, keep as below; if SignUp.java, change accordingly -->
         <activity
             android:name=".SignUpActivity"
             android:exported="false"
@@ -57,35 +58,48 @@
             android:exported="false"
             android:screenOrientation="portrait" />
 
-        <!-- Cart -->
+        <!-- Checkout / Cart -->
         <activity
             android:name=".CartActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
+        <activity
+            android:name=".CheckoutActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
 
-        <!-- Pizza details -->
+        <!-- Product details -->
         <activity
             android:name=".PizzaDetailActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
 
-        <!-- Profile editor (add this so your EditProfileActivity works) -->
+        <!-- Account / Profile -->
         <activity
             android:name=".AccountActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
+        <activity
+            android:name=".EditProfileActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
 
-        <activity android:name=".EditProfileActivity" android:exported="false" />
+        <!-- Location flows -->
+        <activity
+            android:name=".DeliveryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".PickupActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
 
-        <!-- AndroidManifest.xml (inside <application> ... ) -->
+        <!-- Google Maps API key (keep in res/values/google_maps_api.xml) -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" />
 
-        <activity android:name=".PickupActivity"/>
-        <activity android:name=".DeliveryActivity"/>
-
-        <!-- Firebase hooks in automatically via google-services.json -->
+        <!-- Firebase initializes via google-services.json automatically -->
 
     </application>
 </manifest>
