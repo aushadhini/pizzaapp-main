@@ -21,9 +21,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-// If you use Firebase for greeting, uncomment:
-// import com.google.firebase.auth.FirebaseAuth;
-// import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,33 +29,44 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Views from XML
+    // -------- Views (must exist in activity_dashboard.xml) --------
     private TextView tvGreeting;
     private TextView txtNearestBranch;
     private TextView tvDeliverySubtitle;
-    private TextView btnChangeAddress; // this is a TextView in your XML
+    private TextView btnChangeAddress;       // TextView acting like a button
     private View cardDelivery, cardPickup;
 
     private TextView txtSeeAllPopular, emptyView;
     private RecyclerView rvPopular, rvNearest;
     private ImageButton navHome, navHeart, navCart, navProfile;
 
-    // Data
+    // -------- Data --------
     private final List<FoodItem> masterData = new ArrayList<>();
     private final List<FoodItem> popularData = new ArrayList<>();
     private final List<FoodItem> nearestData = new ArrayList<>();
     private FoodAdapter popularAdapter, nearestAdapter;
 
-    // Location
+    // -------- Location --------
     private FusedLocationProviderClient fused;
     private final List<Branch> branches = new ArrayList<>();
-    private LocationPrefs locationPrefs;
+
+    // Receive address result from DeliveryActivity and persist it
+    private final ActivityResultLauncher<Intent> pickAddressLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    double lat = result.getData().getDoubleExtra(DeliveryActivity.EXTRA_LAT, 0);
+                    double lng = result.getData().getDoubleExtra(DeliveryActivity.EXTRA_LNG, 0);
+                    String addr = result.getData().getStringExtra(DeliveryActivity.EXTRA_ADDRESS);
+
+                    LocationPrefs.save(this, addr, lat, lng);  // persist
+                    updateAddressUI();                          // reflect in UI
+                }
+            });
 
     private final ActivityResultLauncher<String> locationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
-                if (granted) {
-                    fetchNearestFromDevice();
-                } else {
+                if (granted) fetchNearestFromDevice();
+                else {
                     txtNearestBranch.setText("Allow location to detect nearest branch");
                     fillNearestWithTopRated();
                 }
@@ -67,17 +75,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Use your layout file name here (this matches what you showed)
         setContentView(R.layout.activity_dashboard);
 
         bindViews();
-        locationPrefs = new LocationPrefs(this);
-
         setupGreeting();
         setupRecyclerViews();
         seedDemoData();
 
-        // Default = show all in Popular
+        // Popular = all items initially
         popularData.clear();
         popularData.addAll(masterData);
         popularAdapter.notifyDataSetChanged();
@@ -88,35 +93,31 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "See all popular", Toast.LENGTH_SHORT).show());
 
         View.OnClickListener openDelivery = v ->
-                startActivity(new Intent(MainActivity.this, DeliveryActivity.class));
+                pickAddressLauncher.launch(new Intent(this, DeliveryActivity.class));
         cardDelivery.setOnClickListener(openDelivery);
         btnChangeAddress.setOnClickListener(openDelivery);
 
         cardPickup.setOnClickListener(v ->
-                startActivity(new Intent(MainActivity.this, PickupActivity.class)));
+                startActivity(new Intent(this, PickupActivity.class)));
 
         navHome.setOnClickListener(v -> { /* already here */ });
         navHeart.setOnClickListener(v -> Toast.makeText(this, "Favorites", Toast.LENGTH_SHORT).show());
-        navCart.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, CartActivity.class)));
-        navProfile.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, AccountActivity.class)));
+        navCart.setOnClickListener(v -> startActivity(new Intent(this, CartActivity.class)));
+        navProfile.setOnClickListener(v -> startActivity(new Intent(this, AccountActivity.class)));
 
-        // Location setup
+        // Location infra
         fused = LocationServices.getFusedLocationProviderClient(this);
         seedBranches();
 
-        // First time UI state for address
+        // Initial UI: show saved address if any; otherwise try device location
         updateAddressUI();
-
-        // If no saved address, try device location (permission)
-        if (!locationPrefs.has()) {
-            ensureLocationThenFetch();
-        }
+        if (!LocationPrefs.has(this)) ensureLocationThenFetch();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Refresh card after returning from DeliveryActivity
+        // In case DeliveryActivity saved to prefs via result, keep card fresh
         updateAddressUI();
     }
 
@@ -140,12 +141,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupGreeting() {
-        // If you have Firebase user:
-        // FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        // String name = (user != null && user.getDisplayName() != null)
-        //         ? user.getDisplayName()
-        //         : (user != null ? user.getEmail() : "Guest");
-        String name = "Deelaka"; // replace with real name source if you have one
+        String name = "Deelaka"; // TODO: replace with actual user name if available
         tvGreeting.setText("Hello " + name + "! \uD83C\uDF55");
     }
 
@@ -155,13 +151,13 @@ public class MainActivity extends AppCompatActivity {
 
         popularAdapter = new FoodAdapter(popularData, new FoodAdapter.OnFoodClickListener() {
             @Override public void onItemClick(FoodItem item) {
-                Intent intent = new Intent(MainActivity.this, PizzaDetailActivity.class);
-                intent.putExtra(PizzaDetailActivity.EXTRA_TITLE, item.title);
-                intent.putExtra(PizzaDetailActivity.EXTRA_SUBTITLE, item.subtitle);
-                intent.putExtra(PizzaDetailActivity.EXTRA_RATING, item.rating);
-                intent.putExtra(PizzaDetailActivity.EXTRA_PRICE, 1590.0);
-                intent.putExtra(PizzaDetailActivity.EXTRA_IMAGE_RES, item.imageRes);
-                startActivity(intent);
+                Intent i = new Intent(MainActivity.this, PizzaDetailActivity.class);
+                i.putExtra(PizzaDetailActivity.EXTRA_TITLE, item.title);
+                i.putExtra(PizzaDetailActivity.EXTRA_SUBTITLE, item.subtitle);
+                i.putExtra(PizzaDetailActivity.EXTRA_RATING, item.rating);
+                i.putExtra(PizzaDetailActivity.EXTRA_PRICE, 1590.0);
+                i.putExtra(PizzaDetailActivity.EXTRA_IMAGE_RES, item.imageRes);
+                startActivity(i);
             }
             @Override public void onLikeClick(FoodItem item) {
                 item.liked = !item.liked;
@@ -173,13 +169,13 @@ public class MainActivity extends AppCompatActivity {
 
         nearestAdapter = new FoodAdapter(nearestData, new FoodAdapter.OnFoodClickListener() {
             @Override public void onItemClick(FoodItem item) {
-                Intent intent = new Intent(MainActivity.this, PizzaDetailActivity.class);
-                intent.putExtra(PizzaDetailActivity.EXTRA_TITLE, item.title);
-                intent.putExtra(PizzaDetailActivity.EXTRA_SUBTITLE, item.subtitle);
-                intent.putExtra(PizzaDetailActivity.EXTRA_RATING, item.rating);
-                intent.putExtra(PizzaDetailActivity.EXTRA_PRICE, 1590.0);
-                intent.putExtra(PizzaDetailActivity.EXTRA_IMAGE_RES, item.imageRes);
-                startActivity(intent);
+                Intent i = new Intent(MainActivity.this, PizzaDetailActivity.class);
+                i.putExtra(PizzaDetailActivity.EXTRA_TITLE, item.title);
+                i.putExtra(PizzaDetailActivity.EXTRA_SUBTITLE, item.subtitle);
+                i.putExtra(PizzaDetailActivity.EXTRA_RATING, item.rating);
+                i.putExtra(PizzaDetailActivity.EXTRA_PRICE, 1590.0);
+                i.putExtra(PizzaDetailActivity.EXTRA_IMAGE_RES, item.imageRes);
+                startActivity(i);
             }
             @Override public void onLikeClick(FoodItem item) { item.liked = !item.liked; }
         });
@@ -203,10 +199,11 @@ public class MainActivity extends AppCompatActivity {
         rvPopular.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
     }
 
-    // -------- Address & Nearest Branch UI --------
+    // -------- Address + Nearest outlet UI --------
     private void updateAddressUI() {
-        if (locationPrefs.has()) {
-            tvDeliverySubtitle.setText(locationPrefs.address());
+        String savedAddr = LocationPrefs.getAddress(this);
+        if (savedAddr != null) {
+            tvDeliverySubtitle.setText(savedAddr);
             btnChangeAddress.setText("Change");
             recomputeNearestFromSaved();
         } else {
@@ -217,23 +214,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void recomputeNearestFromSaved() {
-        try {
-            double lat = locationPrefs.lat();
-            double lng = locationPrefs.lng();
-            Location loc = new Location("saved");
-            loc.setLatitude(lat);
-            loc.setLongitude(lng);
-
-            Branch nearest = findNearestBranch(loc);
-            txtNearestBranch.setText("Nearest: " + nearest.name);
-            fillNearestWithTopRated(); // or load items for this branch
-        } catch (Exception e) {
+        Double lat = LocationPrefs.getLat(this);
+        Double lng = LocationPrefs.getLng(this);
+        if (lat == null || lng == null || branches.isEmpty()) {
             txtNearestBranch.setText("Nearest branch unavailable");
             fillNearestWithTopRated();
+            return;
         }
+        Location loc = new Location("saved");
+        loc.setLatitude(lat);
+        loc.setLongitude(lng);
+        Branch nearest = findNearestBranch(loc);
+        txtNearestBranch.setText("Nearest: " + nearest.name);
+        fillNearestWithTopRated(); // replace with branch-based items if you have them
     }
 
-    // -------- Device Location (fallback if no saved address) --------
+    // -------- Device location fallback (when no saved address) --------
     private void ensureLocationThenFetch() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -247,7 +243,7 @@ public class MainActivity extends AppCompatActivity {
     private void fetchNearestFromDevice() {
         try {
             fused.getLastLocation().addOnSuccessListener(this, loc -> {
-                if (loc == null) {
+                if (loc == null || branches.isEmpty()) {
                     txtNearestBranch.setText("Can't get location. Showing top nearby.");
                     fillNearestWithTopRated();
                     return;
@@ -266,9 +262,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void seedBranches() {
-        branches.add(new Branch("Galle", 6.0535, 80.2210));
-        branches.add(new Branch("Nugegoda", 6.8610, 79.8917));
-        // Add all your outlets here
+        branches.add(new Branch("Galle",     6.0535, 80.2210));
+        branches.add(new Branch("Nugegoda",  6.8610, 79.8917));
+        branches.add(new Branch("Borella",   6.9157, 79.8648));
+        branches.add(new Branch("Kaduwela",  6.9330, 80.0050));
+        // TODO add all real outlets here
     }
 
     private Branch findNearestBranch(@NonNull Location user) {
@@ -283,13 +281,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private static double distanceKm(double lat1, double lon1, double lat2, double lon2) {
-        double R = 6371.0;
+        final double R = 6371.0;
         double dLat = Math.toRadians(lat2 - lat1);
         double dLon = Math.toRadians(lon2 - lon1);
         double a = Math.sin(dLat/2)*Math.sin(dLat/2) +
                 Math.cos(Math.toRadians(lat1))*Math.cos(Math.toRadians(lat2)) *
                         Math.sin(dLon/2)*Math.sin(dLon/2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     }
 
@@ -301,11 +299,13 @@ public class MainActivity extends AppCompatActivity {
                 return Float.compare(b.rating, a.rating);
             }
         });
-        for (int i = 0; i < Math.min(4, copy.size()); i++) nearestData.add(copy.get(i));
-        nearestAdapter.notifyDataSetChanged(); // <-- correct method
+        for (int i = 0; i < Math.min(4, copy.size()); i++) {
+            nearestData.add(copy.get(i));
+        }
+        nearestAdapter.notifyDataSetChanged();
     }
 
-    // Models
+    // -------- Model --------
     private static class Branch {
         final String name; final double lat, lng;
         Branch(String name, double lat, double lng) { this.name = name; this.lat = lat; this.lng = lng; }
