@@ -3,10 +3,23 @@ package com.example.pizzaapp;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+/**
+ * Tiny helper for persisting the user's chosen delivery address and coordinates.
+ * Usage (static):
+ *   LocationPrefs.save(context, "30B Temples Rd, ...", lat, lng);
+ *   String addr = LocationPrefs.getAddress(context);
+ *   Double lat  = LocationPrefs.getLat(context);
+ *   Double lng  = LocationPrefs.getLng(context);
+ *
+ * Or create an instance and reuse:
+ *   LocationPrefs lp = new LocationPrefs(context);
+ *   lp.save(addr, lat, lng);
+ *   if (lp.has()) { ... }
+ */
 public final class LocationPrefs {
 
     // Pref file + keys
-    private static final String FILE = "loc_prefs";
+    private static final String FILE  = "loc_prefs";
     private static final String K_ADDR = "addr";
     private static final String K_LAT  = "lat";
     private static final String K_LNG  = "lng";
@@ -16,7 +29,9 @@ public final class LocationPrefs {
     private final SharedPreferences sp;
 
     public LocationPrefs(Context context) {
-        this.sp = context.getApplicationContext().getSharedPreferences(FILE, Context.MODE_PRIVATE);
+        // Use app context to avoid leaking an Activity
+        this.sp = context.getApplicationContext()
+                .getSharedPreferences(FILE, Context.MODE_PRIVATE);
     }
 
     /** Save address and coordinates in one call. */
@@ -41,7 +56,7 @@ public final class LocationPrefs {
                 .apply();
     }
 
-    /** @return true if we have at least an address saved. */
+    /** True if we have at least an address saved. */
     public boolean has() {
         return sp.contains(K_ADDR);
     }
@@ -50,23 +65,24 @@ public final class LocationPrefs {
         return sp.getString(K_ADDR, null);
     }
 
+    /** @return null if not saved yet. */
     public Double lat() {
         if (!sp.contains(K_LAT)) return null;
-        long bits = sp.getLong(K_LAT, 0L);
-        return Double.longBitsToDouble(bits);
+        return Double.longBitsToDouble(sp.getLong(K_LAT, 0L));
     }
 
+    /** @return null if not saved yet. */
     public Double lng() {
         if (!sp.contains(K_LNG)) return null;
-        long bits = sp.getLong(K_LNG, 0L);
-        return Double.longBitsToDouble(bits);
+        return Double.longBitsToDouble(sp.getLong(K_LNG, 0L));
     }
 
+    /** Remove everything. */
     public void clear() {
         sp.edit().clear().apply();
     }
 
-    /* ---------------- Static helpers (backward compatible) ---------------- */
+    /* ---------------- Static convenience helpers ---------------- */
 
     public static void save(Context c, String address, double lat, double lng) {
         new LocationPrefs(c).save(address, lat, lng);

@@ -77,7 +77,7 @@
                             android:id="@+id/tvAddressSummary"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
+                            android:layout_weight="@integer/material_motion_duration_long_2"
                             android:layout_marginStart="8dp"
                             android:text="Delivery to: —"
                             android:textColor="@android:color/black"
